@@ -23,7 +23,17 @@ yarn && yarn dev
   - [ ] Rename function
   - [ ] Change function to process and vice versa
   - [ ] Remove function or process
+  - [ ] [OPTIONAL] Make links splines instead of straight lines
 - Docs
   - [ ] Write some basic documentation
   - [ ] Make a tutorial video
-- [ ] Deploy on IPFS
+- Deployment
+  - [ ] Deploy on IPFS
+  - [ ] Install / Test on simulator
+- [ ] Refactor
+  - [ ] Graph types all in one place
+
+### Improvements suggestions
+> - Read from a smart contract
+>
+>Depending on how the smart contract is formatted it might be hard. I'm open to any advice on parsing.
