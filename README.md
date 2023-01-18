@@ -23,3 +23,7 @@ yarn && yarn dev
   - [ ] Rename function
   - [ ] Change function to process and vice versa
   - [ ] Remove function or process
+- Docs
+  - [ ] Write some basic documentation
+  - [ ] Make a tutorial video
+- [ ] Deploy on IPFS
