@@ -350,7 +350,7 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
                 disabledItemValues={['none', ...(Object.keys(functions[unwrap(selectedFunction)].args).length > 0 ? [] : ['-1'])]}
                 data={addNodeData}
                 menuWidth={400}
-                menuHeight={600}
+                menuHeight={400}
                 value={null}
                 onChange={onCascaderValueSelected} />
         </div>

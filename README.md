@@ -20,6 +20,7 @@ yarn && yarn dev
     - [ ] make let nodes like a process with one input 
     - [ ] make a variable node
   - [ ] make an Operation node for +, -, *, /, %, and also boolean &&, ||
+  - [ ] Display Code in an expandable window on the right side
   - [ ] Export only a subset of functions
   - [ ] [OPTIONAL] Graph schema Versionning and retrocompatibility
   - [ ] Rename function
@@ -33,9 +34,14 @@ yarn && yarn dev
   - [ ] Deploy on IPFS
   - [ ] Install / Test on simulator
 - [ ] Refactor
+  - [ ] Header
   - [ ] Graph types all in one place
 
 ### Improvements suggestions
 > - Read from a smart contract
 >
 >Depending on how the smart contract is formatted it might be hard. I'm open to any advice on parsing.
+
+> Right clicking a blank area of canvas brings up a list of nodes that can be created.
+
+> Perhaps a menu of object primitives along the top that can bed dragged into the scene
