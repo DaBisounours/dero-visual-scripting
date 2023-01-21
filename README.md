@@ -19,7 +19,7 @@ yarn && yarn dev
     - [ ] DIMs are put at the top of the function, DIM node with list of variables and their type ?
     - [ ] make let nodes like a process with one input 
     - [ ] make a variable node
-  - [ ] make an Operation node for +, -, *, /, %, and also boolean &&, ||
+  - [ ] make an Operation node for +, -, *, /, %, and also boolean &&, ||, ... (check docs)
   - [ ] Display Code in an expandable window on the right side
   - [ ] Export only a subset of functions
   - [ ] [OPTIONAL] Graph schema Versionning and retrocompatibility
