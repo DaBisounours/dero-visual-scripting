@@ -98,26 +98,14 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
     enum MouseButton { Left = 0, Middle = 1, Right = 2 };
 
     const onCanvasMouseDown: MouseEventHandler = (event) => {
-        switch (event.button) {
-            case MouseButton.Right:
-                //setContextMenuOpen(None());
-                return;
-            case MouseButton.Middle:
-                const position = { x: event.pageX, y: event.pageY };
+        if (event.button == MouseButton.Left) {
+            setContextMenuOpen(None());
+            setSelectedElement(None());
+            setMovingCanvas(Some({
+                start: { x: event.clientX, y: event.clientY },
+                move: { x: 0, y: 0 },
+            }));
 
-                event.stopPropagation()
-                if (!hasSome(contextMenuOpen)) {
-                    setContextMenuOpen(Some(position));
-                }
-                break;
-            default:
-                //setContextMenuOpen(None());
-                setSelectedElement(None());
-                setMovingCanvas(Some({
-                    start: { x: event.clientX, y: event.clientY },
-                    move: { x: 0, y: 0 },
-                }));
-                break;
         }
 
     }
@@ -423,6 +411,7 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
                 onMouseDown={onCanvasMouseDown}
                 onMouseUp={onMouseUp}
                 onMouseMove={onMouseMove}
+                onDoubleClick={e => setContextMenuOpen(Some({ x: e.clientX, y: e.clientY }))}
             >
 
 
