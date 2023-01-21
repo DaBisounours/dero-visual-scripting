@@ -12,13 +12,10 @@ import BranchIcon from '@rsuite/icons/Branch';
 import { Functions, functionsAtom, generateProjectCode, initialFunctions, Links, Nodes, Project, projectOptionsAtom, storageProjectAtom, validateFunctions } from './graph/graph';
 import { Node } from './graph/nodes';
 
-import MenuIcon from '@rsuite/icons/Menu';
 import FileDownloadIcon from '@rsuite/icons/FileDownload';
 import FileUploadIcon from '@rsuite/icons/FileUpload';
 import CombinationIcon from '@rsuite/icons/Combination';
 import TrashIcon from '@rsuite/icons/Trash';
-import CheckOutlineIcon from '@rsuite/icons/CheckOutline';
-import CloseOutlineIcon from '@rsuite/icons/CloseOutline';
 
 import { exportProject } from './graph/import-export';
 
@@ -286,7 +283,7 @@ const ProjectSettingsModal = ({ open, setOpen }: ProjectSettingsModalProps) => {
 
 }
 
-
+export const projectCodeAtom = atom<string>('');
 
 
 /******************************* APP ******************************** */
@@ -295,7 +292,7 @@ function App() {
 
   const [functions, setFunctions] = useAtom(functionsAtom);
   const [validGraph, setValidGraph] = useState(true);
-  const [projectCode, setProjectCode] = useState('');
+  const [projectCode, setProjectCode] = useAtom(projectCodeAtom);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -328,7 +325,9 @@ function App() {
     setProjectOptions({ name: storageProject.name });
   }, [])
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
+  const [codeDrawerOpen, setCodeDrawerOpen] = useState(false);
+
   const [editFunctionModalOpen, setEditFunctionModalOpen] =
     useState(false);
 
@@ -343,9 +342,9 @@ function App() {
   return (
     <Container>
       {/** 
-       * Drawer 
+       * Left Drawer 
        * */}
-      <Drawer placement={'left'} open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+      <Drawer placement={'left'} open={menuDrawerOpen} onClose={() => setMenuDrawerOpen(false)}>
         <Drawer.Header>
           <Drawer.Title>{projectOptions.name}</Drawer.Title>
           <Drawer.Actions>
@@ -393,13 +392,13 @@ function App() {
                   {Object.keys(functions).filter(name => !functions[name].isProcess).map((name) =>
                     <Nav.Item key={name} eventKey={"3-" + name} onClick={(event) => {
                       setSelectedFunction(Some(name));
-                      setDrawerOpen(false);
+                      setMenuDrawerOpen(false);
                     }}>{name}</Nav.Item>
                   )}
                   <Nav.Item eventKey={"3--new"} onClick={(event) => {
                     setEditFunctionModalMode({ mode: 'create', isProcess: false });
                     setEditFunctionModalOpen(true);
-                    setDrawerOpen(false);
+                    setMenuDrawerOpen(false);
                   }}><i>+ Create</i></Nav.Item>
 
                 </Nav.Menu>
@@ -407,13 +406,13 @@ function App() {
                   {Object.keys(functions).filter(name => functions[name].isProcess).map((name) =>
                     <Nav.Item key={name} eventKey={"4-" + name} onClick={(event) => {
                       setSelectedFunction(Some(name));
-                      setDrawerOpen(false);
+                      setMenuDrawerOpen(false);
                     }}>{name}</Nav.Item>
                   )}
                   <Nav.Item eventKey={"4--new"} onClick={(event) => {
                     setEditFunctionModalMode({ mode: 'create', isProcess: true });
                     setEditFunctionModalOpen(true);
-                    setDrawerOpen(false);
+                    setMenuDrawerOpen(false);
                   }}><i>+ Create</i></Nav.Item>
 
                 </Nav.Menu>
@@ -423,7 +422,24 @@ function App() {
         </Drawer.Body>
       </Drawer>
       
-      
+      {/** 
+       * Right Drawer 
+       * */}
+      <Drawer placement={'right'} open={codeDrawerOpen} onClose={() => setCodeDrawerOpen(false)}>
+        <Drawer.Header>
+          <Drawer.Title>{"Project code"}</Drawer.Title>
+          <Drawer.Actions>
+            
+          </Drawer.Actions>
+        </Drawer.Header>
+        <Drawer.Body style={{ padding: "2em" }}>
+          <pre><code>
+            {projectCode}
+          </code></pre>
+        </Drawer.Body>
+      </Drawer>
+
+
       {/** 
        * Main 
        * */}
@@ -435,15 +451,12 @@ function App() {
             width: '100%',
             background: colors.whiteAlpha(200),
           }}
-          toolbar={<>
-            <IconButton onClick={() => setDrawerOpen(true)} style={{ margin: '1em' }} icon={<MenuIcon />} />
-            <div><IconButton icon={validGraph ? <CheckOutlineIcon/> : <CloseOutlineIcon/>}/></div>
-          </>} />
-          <pre><code style={{position: 'absolute', top: '286px', right: '4px', maxWidth: '50%'}}>
-            {projectCode}
-          </code></pre>
+          setMenuDrawerOpen={setMenuDrawerOpen}
+          setCodeDrawerOpen={setCodeDrawerOpen}
+          validGraph={validGraph} />
+
       </Content>
-      
+
       {/** 
        * Modals 
        * */}

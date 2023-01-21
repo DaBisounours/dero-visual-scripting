@@ -1,5 +1,5 @@
 import { MouseEventHandler, useEffect, useState } from "react";
-import { Cascader, Container } from "rsuite";
+import { Cascader, Container, IconButton } from "rsuite";
 import { colors } from "../utils/theme";
 import { hasSome, None, Option, Some, unwrap } from "../utils/variants";
 import { AbstractNode } from "./Node";
@@ -14,7 +14,10 @@ import { LinksAction, linkEquals } from "../graph/links";
 import { Node, NodeLink, NodesAction, NodeOffset, Offset, Position, NodeDataKind, NumericConditionOperator, StringConditionOperator } from "../graph/nodes";
 import { selectedFunctionAtom } from "../App";
 import { defaultDimLet, defaultDVMFunctionMap, DVM, DVMFunction, DVMType } from "../dvm/types";
+import CheckOutlineIcon from '@rsuite/icons/CheckOutline';
+import CloseOutlineIcon from '@rsuite/icons/CloseOutline';
 
+import MenuIcon from '@rsuite/icons/Menu';
 
 
 
@@ -22,11 +25,13 @@ import { defaultDimLet, defaultDVMFunctionMap, DVM, DVMFunction, DVMType } from 
 // CANVAS
 type CanvasProps = {
     style: any,
-    toolbar?: any
+    setCodeDrawerOpen: any,
+    setMenuDrawerOpen: any,
+    validGraph: boolean,
     gridCellSizePx: number,
 }
 
-export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
+export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, setCodeDrawerOpen }: CanvasProps) {
     const [functions] = useAtom(functionsAtom);
 
     const { nodes, updateNodes, links, updateLinks } = useGraphAtomReducer();
@@ -64,25 +69,57 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
     const [canvasPosition, setCanvasPosition] = useState<Offset>({ x: 0, y: 0 })
     const [movingCanvas, setMovingCanvas] = useState<Option<{ start: Offset, move: Offset }>>(None());
 
+    const [contextMenuOpen, setContextMenuOpen] = useState<Option<Offset>>(None());
+
+
     const onNodeMouseDown = (id: number) => {
         const handler: MouseEventHandler = (event) => {
-            event.stopPropagation();
-            setSelectedElement(Some({ type: 'node', id }))
-            const offset = {
-                x: event.pageX - nodes[id].position.x,
-                y: event.pageY - nodes[id].position.y,
+            switch (event.button) {
+                case MouseButton.Right:
+                    event.stopPropagation();
+                    return;
+                case MouseButton.Middle:
+                    event.stopPropagation();
+                    return;
+                default:
+                    event.stopPropagation();
+                    setSelectedElement(Some({ type: 'node', id }))
+                    const offset = {
+                        x: event.pageX - nodes[id].position.x,
+                        y: event.pageY - nodes[id].position.y,
+                    }
+                    setMovingNode(Some({ id, offset }));
             }
-            setMovingNode(Some({ id, offset }));
+
         }
         return handler;
     }
 
+    enum MouseButton { Left = 0, Middle = 1, Right = 2 };
+
     const onCanvasMouseDown: MouseEventHandler = (event) => {
-        setSelectedElement(None());
-        setMovingCanvas(Some({
-            start: { x: event.clientX, y: event.clientY },
-            move: { x: 0, y: 0 },
-        }));
+        switch (event.button) {
+            case MouseButton.Right:
+                //setContextMenuOpen(None());
+                return;
+            case MouseButton.Middle:
+                const position = { x: event.pageX, y: event.pageY };
+
+                event.stopPropagation()
+                if (!hasSome(contextMenuOpen)) {
+                    setContextMenuOpen(Some(position));
+                }
+                break;
+            default:
+                //setContextMenuOpen(None());
+                setSelectedElement(None());
+                setMovingCanvas(Some({
+                    start: { x: event.clientX, y: event.clientY },
+                    move: { x: 0, y: 0 },
+                }));
+                break;
+        }
+
     }
 
     const onMouseUp: MouseEventHandler = _ => {
@@ -195,17 +232,20 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
     const onCascaderValueSelected:
         ((value: string | null, event: React.SyntheticEvent<Element, Event>) => void) =
         (value) => {
-            const defaultPosition = {
-                x: 200,
-                y: 200
-            }
+            const position = match(contextMenuOpen)
+                .with({ type: 'Some' }, somePosition => {
+                    return unwrap(somePosition)
+                })
+                .otherwise(_ => ({ x: 200, y: 200 }))
+
+
             const node: Node | void = match(value)
                 .with('return', () => {
                     const n: Node = {
                         name: "End",
                         edit: false,
                         locked: false,
-                        position: defaultPosition,
+                        position,
                         data: {
                             type: NodeDataKind.End,
                             end: { type: 'return', returnType: DVMType.Uint64, value: 0 }
@@ -218,7 +258,7 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
                         name: "Argument",
                         edit: false,
                         locked: false,
-                        position: defaultPosition,
+                        position,
                         data: {
                             type: NodeDataKind.Argument,
                             name: Object.keys(functions[unwrap(selectedFunction)].args)[0]
@@ -231,7 +271,7 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
                         name: "End",
                         edit: false,
                         locked: false,
-                        position: defaultPosition,
+                        position,
                         data: {
                             type: NodeDataKind.End,
                             end: { type: 'panic' }
@@ -244,7 +284,7 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
                         name: "Dim - Let",
                         edit: false,
                         locked: false,
-                        position: defaultPosition,
+                        position,
                         data: {
                             type: NodeDataKind.DimLet,
                             dimlet: defaultDimLet,
@@ -257,7 +297,7 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
                         name: "Condition",
                         edit: false,
                         locked: false,
-                        position: defaultPosition,
+                        position,
                         data: {
                             type: NodeDataKind.Control,
                             control: {
@@ -279,7 +319,7 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
                         name: "GOTO",
                         edit: false,
                         locked: false,
-                        position: defaultPosition,
+                        position,
                         data: {
                             type: NodeDataKind.Goto,
                         }
@@ -294,7 +334,7 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
                             name: "Process",
                             edit: false,
                             locked: false,
-                            position: defaultPosition,
+                            position,
                             data: {
                                 type: NodeDataKind.Process,
                                 process: { name: p.process }
@@ -315,7 +355,7 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
                                 name: 'DVM Function',
                                 edit: false,
                                 locked: false,
-                                position: defaultPosition,
+                                position,
                                 data: {
                                     type: NodeDataKind.Function,
                                     function: defaultDVMFunctionMap[name],
@@ -327,6 +367,7 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
                     }
                 })
                 .otherwise(v => { console.error('Not implemented ' + v); });
+            setContextMenuOpen(None());
             if (node) {
                 updateNodes({
                     action: NodesAction.AddNode,
@@ -340,19 +381,32 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
 
         }
 
+    const addNodeCascader = (defaultOpen: boolean) => <div className="CASCADER">
+        <Cascader
+            placeholder='Add node'
+            defaultValue={null}
+            defaultOpen={defaultOpen}
+            disabledItemValues={['none', ...(Object.keys(functions[unwrap(selectedFunction)].args).length > 0 ? [] : ['-1'])]}
+            data={addNodeData}
+
+            menuWidth={200}
+            menuHeight={250}
+            style={{ zIndex: 10 }}
+            value={null}
+            onChange={onCascaderValueSelected} />
+    </div>
+
+
     return <>
-        <div style={{ display: 'flex', alignItems: 'center', userSelect: 'none', gap: '2em' }}>
-            {toolbar}
-            {hasSome(selectedFunction) ? unwrap(selectedFunction) : null}
-            <Cascader
-                placeholder='Add node'
-                defaultValue={null}
-                disabledItemValues={['none', ...(Object.keys(functions[unwrap(selectedFunction)].args).length > 0 ? [] : ['-1'])]}
-                data={addNodeData}
-                menuWidth={400}
-                menuHeight={400}
-                value={null}
-                onChange={onCascaderValueSelected} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: '2em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', userSelect: 'none', gap: '2em' }}>
+                <IconButton onClick={() => { setMenuDrawerOpen(true) }} style={{ margin: '1em' }} icon={<MenuIcon />} />
+
+                {hasSome(selectedFunction) ? unwrap(selectedFunction) : null}
+                {addNodeCascader(false)}
+            </div>
+            <div><IconButton onClick={() => { setCodeDrawerOpen(true) }} icon={validGraph ? <CheckOutlineIcon /> : <CloseOutlineIcon />} /></div>
+
         </div>
         <Container className="canvas" style={{ ...style, overflow: "hidden", userSelect: 'none' }} ref={(el) => {
             if (!el) return;
@@ -361,14 +415,17 @@ export function Canvas({ style, gridCellSizePx, toolbar }: CanvasProps) {
                 setContainerPosition({ x: rect.x, y: rect.y });
             }
         }}>
-
+            {hasSome(contextMenuOpen) ? <div style={{ position: 'absolute', left: unwrap(contextMenuOpen).x - 24, top: unwrap(contextMenuOpen).y - 24 }}>
+                {addNodeCascader(true)}
+            </div> : <></>}
             <div
                 style={{ position: 'relative', width: "100%", height: '100%' }}
                 onMouseDown={onCanvasMouseDown}
                 onMouseUp={onMouseUp}
                 onMouseMove={onMouseMove}
-
             >
+
+
                 <div
                     className="nodes"
                     style={{
