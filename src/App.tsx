@@ -16,6 +16,7 @@ import FileDownloadIcon from '@rsuite/icons/FileDownload';
 import FileUploadIcon from '@rsuite/icons/FileUpload';
 import CombinationIcon from '@rsuite/icons/Combination';
 import TrashIcon from '@rsuite/icons/Trash';
+import CloseIcon from '@rsuite/icons/Close';
 
 import { exportProject } from './graph/import-export';
 
@@ -342,7 +343,7 @@ function App() {
   return (
     <Container>
       {/** 
-       * Left Drawer 
+       * Drawer 
        * */}
       <Drawer placement={'left'} open={menuDrawerOpen} onClose={() => setMenuDrawerOpen(false)}>
         <Drawer.Header>
@@ -421,40 +422,32 @@ function App() {
           </Sidenav>
         </Drawer.Body>
       </Drawer>
-      
-      {/** 
-       * Right Drawer 
-       * */}
-      <Drawer placement={'right'} open={codeDrawerOpen} onClose={() => setCodeDrawerOpen(false)}>
-        <Drawer.Header>
-          <Drawer.Title>{"Project code"}</Drawer.Title>
-          <Drawer.Actions>
-            
-          </Drawer.Actions>
-        </Drawer.Header>
-        <Drawer.Body style={{ padding: "2em" }}>
-          <pre><code>
-            {projectCode}
-          </code></pre>
-        </Drawer.Body>
-      </Drawer>
-
 
       {/** 
        * Main 
        * */}
       <Content style={{ minHeight: '100vh', minWidth: '100vw' }}>
-        <Canvas
-          gridCellSizePx={8}
-          style={{
-            height: '100vh',
-            width: '100%',
-            background: colors.whiteAlpha(200),
-          }}
-          setMenuDrawerOpen={setMenuDrawerOpen}
-          setCodeDrawerOpen={setCodeDrawerOpen}
-          validGraph={validGraph} />
-
+        <div style={{ display: 'flex' }}>
+          <div style={{ flexGrow: 1 }}>
+            <Canvas
+              gridCellSizePx={8}
+              style={{
+                height: '95vh',
+                background: colors.whiteAlpha(200),
+              }}
+              setMenuDrawerOpen={setMenuDrawerOpen}
+              setCodeDrawerOpen={setCodeDrawerOpen}
+              validGraph={validGraph} />
+          </div>
+          <div style={{ background: colors.whiteAlpha(180), width: codeDrawerOpen ? '600px' : 0, opacity: codeDrawerOpen ? 1 : 0, transition: 'all .4s ease-in-out', height: '100vh', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '64px', background: colors.blackAlpha(400), padding: '1em'}}>
+              <IconButton icon={<CloseIcon/>} onClick={_ => setCodeDrawerOpen(false)} style={{ background: 'none', marginRight: '1em'}}/>Project Code
+              </div>
+            <pre style={{padding: '2em'}}><code>
+              {projectCode}
+            </code></pre>
+          </div>
+        </div>
       </Content>
 
       {/** 

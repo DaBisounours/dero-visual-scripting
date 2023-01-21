@@ -14,13 +14,14 @@ yarn && yarn dev
 - Graph & UI
   - [x] Add, remove, edit nodes and links
   - [x] Store in local storage
+  - [ ] Import / Export
   - [x] Code generation
   - [ ] Split "Let-Dim" node, 
     - [ ] DIMs are put at the top of the function, DIM node with list of variables and their type ?
     - [ ] make let nodes like a process with one input 
     - [ ] make a variable node
   - [ ] make an Operation node for +, -, *, /, %, and also boolean &&, ||, ... (check docs)
-  - [ ] Display Code in an expandable window on the right side
+  - [x] Display Code in an expandable window on the right side
   - [ ] Export only a subset of functions
   - [ ] [OPTIONAL] Graph schema Versionning and retrocompatibility
   - [ ] Rename function
