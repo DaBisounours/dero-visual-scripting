@@ -14,28 +14,29 @@ yarn && yarn dev
 - Graph & UI
   - [x] Add, remove, edit nodes and links
   - [x] Store in local storage
-  - [ ] Import / Export
+  - [x] Import / Export
   - [x] Code generation
   - [ ] Split "Let-Dim" node, 
     - [ ] DIMs are put at the top of the function, DIM node with list of variables and their type ?
     - [ ] make let nodes like a process with one input 
-    - [ ] make a variable node
+    - [ ] make a variable node to use the name
   - [ ] make an Operation node for +, -, *, /, %, and also boolean &&, ||, ... (check docs)
   - [x] Display Code in an expandable window on the right side
   - [ ] Export only a subset of functions
-  - [ ] [OPTIONAL] Graph schema Versionning and retrocompatibility
   - [ ] Rename function
   - [ ] Change function to process and vice versa
   - [ ] Remove function or process
+  - [ ] [OPTIONAL] Graph schema Versionning and retrocompatibility
   - [ ] [OPTIONAL] Make links splines instead of straight lines
 - Docs
   - [ ] Write some basic documentation
   - [ ] Make a tutorial video
 - Deployment
+  - [ ] Install / Test on DERO simulator
   - [ ] Deploy on IPFS
-  - [ ] Install / Test on simulator
 - [ ] Refactor
   - [ ] Header
+  - [ ] Custom UI components
   - [ ] Graph types all in one place
 
 ### Improvements suggestions
