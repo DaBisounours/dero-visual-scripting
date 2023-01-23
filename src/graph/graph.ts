@@ -30,6 +30,11 @@ export type FunctionData = {
             type: DVMType
         }
     },
+    vars: {
+        [name: string]: {
+            type: DVMType
+        }
+    }
     return: DVMType
 }
 
@@ -71,6 +76,7 @@ export const initialFunctions: Functions = {
         ],
         isProcess: false,
         args: {},
+        vars: {},
         return: DVMType.Uint64,
     }
 };
@@ -235,6 +241,17 @@ export function generateFunctionCode(name: string, functionData: FunctionData) {
     const args = Object.entries(functionData.args).map(([arg, t]) => `${arg} ${t.type}`);
     let output = `Function ${name}(${args.join(', ')}) ${functionData.return}` + newLine;
     let line = 1;
+
+    const uint64Vars = Object.keys(functionData.vars).filter(k => functionData.vars[k].type == DVMType.Uint64)
+    const stringVars = Object.keys(functionData.vars).filter(k => functionData.vars[k].type == DVMType.String)
+    if (uint64Vars.length > 0) {
+        output += `${line++}\tDIM ${uint64Vars.join(', ')} AS Uint64 ${newLine}`
+    }
+    if (stringVars.length > 0) {
+        output += `${line++}\tDIM ${stringVars.join(', ')} AS String ${newLine}`
+    }
+
+
     // reverse : depth first pushes in reverse order of dependencies
     order.reverse().forEach(nodeId => {
         processed[nodeId] = generateNodeStatements(nodeId, vertices, edges, processed, functionData);
@@ -247,7 +264,7 @@ export function generateFunctionCode(name: string, functionData: FunctionData) {
         })
 
     });
-    
+
     // Post fix GOTOs
     let index = 0;
 
@@ -260,9 +277,9 @@ export function generateFunctionCode(name: string, functionData: FunctionData) {
             const endIndex = output.slice(index).indexOf('\n');
             const foundGoto = output.slice(index, index + endIndex);
             const targetNode = Number(foundGoto.split('?')[1]);
-            
+
             output = output.slice(0, index) + `GOTO ${processed[targetNode]?.startLine}` + output.slice(index + endIndex)
-            
+
         }
     }
 
@@ -284,12 +301,12 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
     let lines = 0;
     let expressions: { [output: number]: string } = {};
     match(node.data)
-        .with({ type: NodeDataKind.Start }, _ => { 
+        .with({ type: NodeDataKind.Start }, _ => {
             Object.keys(functionData.args).forEach((arg, index) => {
                 expressions[1 + index] = arg;
-            });            
+            });
         })
-        .with({ type: NodeDataKind.Argument }, data => { 
+        .with({ type: NodeDataKind.Argument }, data => {
             expressions[0] = data.name;
         })
         .with({ type: NodeDataKind.End }, data => {
@@ -327,7 +344,7 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                 } else {
                     // find expression
                     const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == (asProcess ? index + 2 : index));
-                    
+
                     if (link !== undefined) {
                         const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
                         const fromNode = processed[fromNodeId]
@@ -348,26 +365,30 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
             }
             expressions[output] = expression
         })
-        .with({ type: NodeDataKind.DimLet }, data => {
-            statements.push('DIM ' + data.dimlet.name + ' as ' + data.dimlet.return.type)
-            if (data.dimlet.args.in.valueSet == null) {
+        .with({ type: NodeDataKind.Let }, data => {
+            //statements.push('DIM ' + data.dimlet.name + ' as ' + data.dimlet.return.type)
+            if (data.let.in.valueSet == null) {
                 // find expression
-                const link = edges.find(edge => edge.to.id == nodeId);
+                const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == 2);
                 if (link !== undefined) {
                     const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
                     const fromNode = processed[fromNodeId]
                     if (fromNode != null) {
-                        statements.push('LET ' + data.dimlet.name + ' = ' + fromNode.expressions[fromOutput])
+                        console.warn({fromNode, fromOutput});
+                        
+                        statements.push('LET ' + data.let.name + ' = ' + fromNode.expressions[fromOutput])
                     }
 
                 }
             } else {
-                statements.push('LET ' + data.dimlet.name + ' = ' + data.dimlet.args.in.valueSet)
+                statements.push('LET ' + data.let.name + ' = ' + data.let.in.valueSet)
             }
 
-            lines += 2;
+            lines += 1;
+        })
+        .with({ type: NodeDataKind.Variable }, data => {
             edges.filter(edge => edge.from.id == nodeId).forEach(edge => {
-                expressions[edge.from.output] = data.dimlet.name || '(unknown)' // TODO Generate name
+                expressions[edge.from.output] = data.variable.name
             })
 
         })
@@ -405,35 +426,35 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                 } else {
                     statement += condition.valueSet.left;
                 }
-                
+
             }
 
 
             // OPERATOR
             match(condition)
-            .with({type: DVMType.String}, c => {
-                statement += ` ${stringContitionOperatorMap[c.operator]} `
-            })
-            .with({type: DVMType.Uint64}, c => {
-                statement += ` ${numericContitionOperatorMap[c.operator]} `
-            })
-            .with({type: 'Boolean'}, c => {
-                // TODO check if we need to do something
-            })
-            .exhaustive()
-            
-            
+                .with({ type: DVMType.String }, c => {
+                    statement += ` ${stringContitionOperatorMap[c.operator]} `
+                })
+                .with({ type: DVMType.Uint64 }, c => {
+                    statement += ` ${numericContitionOperatorMap[c.operator]} `
+                })
+                .with({ type: 'Boolean' }, c => {
+                    // TODO check if we need to do something
+                })
+                .exhaustive()
+
+
 
             // RIGHT
             if (condition.valueSet.right == null) {
                 // find expression
                 const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == 3);
-                
+
                 if (link !== undefined) {
                     const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
                     const fromNode = processed[fromNodeId]
                     statement += fromNode?.expressions[fromOutput]
-                    
+
                 }
 
             } else {

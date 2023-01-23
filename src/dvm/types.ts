@@ -1,4 +1,4 @@
-import { DVMDimLet } from "../graph/nodes";
+import { Dim, Let } from "../graph/nodes";
 
 export type Variable = string | Uint64 | null;
 export type VariableType = { type: "Variable", valueSet: Variable }
@@ -533,18 +533,4 @@ export const defaultDVMFunctionMap: { [d in DVM]: DVMFunction } = {
         }, return: DVMType.String
     },
 
-}
-
-export const defaultDimLet: DVMDimLet = {
-    name: "var",
-    args: {
-        in: {
-            type: DVMType.String,
-            valueSet: null
-        }
-    },
-    return: {
-        type: DVMType.String,
-        valueSet: null
-    }
 }

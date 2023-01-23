@@ -3,9 +3,9 @@ import { useEffect, useState } from "react"
 import { Button, Checkbox, IconButton, Input, InputGroup, Modal, SelectPicker, Stack } from "rsuite"
 import { match } from "ts-pattern"
 import { selectedFunctionAtom } from "../App"
-import { DVM, DVMType } from "../dvm/types"
+import { DVM, DVMType, Uint64 } from "../dvm/types"
 import { functionsAtom, useGraphAtomReducer } from "../graph/graph"
-import { ConnectionData, NodeLinkTo, NodeLinkFrom, Connector, Position, NodeDataKind, EndNodeData, NodesAction, ProcessNodeData, ControlNodeData, FunctionNodeData, DimLetNodeData, StringConditionOperator, NumericConditionOperator, BooleanConditionOperator, NodeData, stringContitionOperatorMap, numericContitionOperatorMap } from "../graph/nodes"
+import { ConnectionData, NodeLinkTo, NodeLinkFrom, Connector, Position, NodeDataKind, EndNodeData, NodesAction, ProcessNodeData, ControlNodeData, FunctionNodeData, LetNodeData, VariableNodeData, StringConditionOperator, NumericConditionOperator, BooleanConditionOperator, Let, } from "../graph/nodes"
 import { colors } from "../utils/theme"
 import { hasSome, unwrap } from "../utils/variants"
 import { NodeConnector } from "./Connector"
@@ -80,8 +80,11 @@ export const NodeContent = ({ id }: { id: number }) => {
         .with({ type: NodeDataKind.Function }, ({ function: _function }) =>
             <FunctionNode id={id} function={_function} />
         )
-        .with({ type: NodeDataKind.DimLet }, ({ dimlet }) =>
-            <DimLetNode id={id} dimlet={dimlet} />
+        .with({ type: NodeDataKind.Let }, ({ let: _let }) =>
+            <LetNode id={id} let={_let} />
+        )
+        .with({ type: NodeDataKind.Variable }, ({ variable }) =>
+            <VariableNode id={id} variable={variable} />
         )
         .with({ type: NodeDataKind.Goto }, _ =>
             <GotoNode id={id} />
@@ -105,6 +108,7 @@ export const StartNode = ({ id }: { id: number }) => {
     const [selectedFunction] = useAtom(selectedFunctionAtom);
 
     const existingArgs = Object.entries(functions[unwrap(selectedFunction)].args).map(e => ({ name: e[0], type: e[1].type }));
+    const existingVars = Object.entries(functions[unwrap(selectedFunction)].vars).map(e => ({ name: e[0], type: e[1].type }));
 
 
 
@@ -113,10 +117,17 @@ export const StartNode = ({ id }: { id: number }) => {
         setArgs(existingArgs)
     }, [functions]);
 
+    const [vars, setVars] = useState(existingVars);
+    useEffect(() => {
+        setVars(existingVars)
+    }, [functions]);
+
     const [returnType, setReturnType] = useState(functions[unwrap(selectedFunction)].return);
     useEffect(() => {
         setReturnType(functions[unwrap(selectedFunction)].return)
     }, [functions]);
+
+
 
     const types: { label: DVMType, value: DVMType }[] = [
         { label: DVMType.String, value: DVMType.String },
@@ -156,13 +167,40 @@ export const StartNode = ({ id }: { id: number }) => {
                     setArgs([...args, { name: '', type: DVMType.Uint64 }])
                 }} style={{ width: '100%' }}>Add</Button>
 
+
+
+                <h6>Variables</h6>
+                {vars.map((_var, index) => <InputGroup key={index}>
+                    <Input placeholder="Name" value={_var.name} onChange={(value) => {
+                        setVars(vars.map((v, i) => i == index ? { ...v, name: value } : v))
+                    }} />
+
+                    <SelectPicker data={types} defaultValue={_var.type} onChange={(value) => {
+                        if (value != null) {
+                            setVars(vars.map((v, i) => i == index ? { ...v, type: value } : v))
+                        }
+                    }} />
+                    <IconButton onClick={() => { setVars(vars.filter((_, i) => index != i)) }} icon={<TrashIcon />} />
+                </InputGroup>)}
+
+                <Button onClick={() => {
+                    setVars([...vars, { name: '', type: DVMType.Uint64 }])
+                }} style={{ width: '100%' }}>Add</Button>
+
+
+
+
                 <h6>Return Type</h6>
                 <SelectPicker data={types} defaultValue={functions[unwrap(selectedFunction)].return} onChange={(value) => {
                     if (value != null) {
                         setReturnType(value);
                     }
                 }} style={{ width: '100%' }} />
+
+
             </Stack>
+
+
         </Modal.Body>
         <Modal.Footer>
             <Button onClick={close} appearance="subtle">
@@ -174,7 +212,14 @@ export const StartNode = ({ id }: { id: number }) => {
                     args.forEach(arg => {
                         newArgs[arg.name] = { type: arg.type }
                     })
+
+                    let newVars: { [name: string]: { type: DVMType } } = {};
+                    vars.forEach(v => {
+                        newVars[v.name] = { type: v.type }
+                    })
+
                     draft[unwrap(selectedFunction)].args = newArgs;
+                    draft[unwrap(selectedFunction)].vars = newVars;
                     draft[unwrap(selectedFunction)].return = returnType;
                 });
                 close();
@@ -197,7 +242,7 @@ export const StartNode = ({ id }: { id: number }) => {
                 type={{ type: 'flow' }}
                 way='out' />
         </div>
-
+        <Separator/>
         {existingArgs.map((arg, index) =>
             <div key={index} style={styles.row}>
                 <div>{arg.name}</div>
@@ -821,7 +866,225 @@ export const FunctionNode = ({ id, function: _function }: { id: number } & Funct
     </>
 }
 
-export const DimLetNode = ({ id, dimlet }: { id: number } & DimLetNodeData) => {
+
+
+export const LetNode = ({ id, let: _let }: { id: number } & LetNodeData) => {
+    const { nodes, updateNodes } = useGraphAtomReducer();
+    const node = nodes[id];
+    const edit = node.edit;
+    const nodeWidth = 128;
+
+    const [functions, setFunctions] = useAtom(functionsAtom);
+    const [selectedFunction] = useAtom(selectedFunctionAtom);
+    const vars = functions[unwrap(selectedFunction)].vars;
+    const declaredVariables: { label: string, value: string, type: DVMType }[] = Object.entries(vars).map(([k, v]) => ({ label: k, value: k, type: v.type })); // TODO add declared variables
+
+    return <>
+        <div style={styles.row}>
+            <NodeConnector
+                id={id}
+                inout={0}
+                size={12}
+                color={colors.whiteAlpha(400)}
+                type={{ type: 'flow' }}
+                way='in' />
+            
+            <NodeConnector
+                id={id}
+                inout={1}
+                size={12}
+                color={colors.whiteAlpha(400)}
+                type={{ type: 'flow' }}
+                way='out' />
+        </div>
+        <Separator/>
+        {edit ? <>
+
+            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
+                <SelectPicker data={declaredVariables} defaultValue={declaredVariables.length == 0 ? '' : declaredVariables[0].value} style={{ width: '100%' }}
+                    onChange={(value) => {
+                        if (value != null) {
+                            const t = declaredVariables.find(v => v.value == value)?.type
+                            if (t !== undefined && t != DVMType.Variable) {
+                                updateNodes({
+                                    action: NodesAction.EditNode,
+                                    data: {
+                                        id,
+                                        newData: {
+                                            type: NodeDataKind.Let,
+                                            let: {
+                                                name: value,
+                                                in: {
+                                                    type: t,
+                                                    valueSet: null
+                                                }
+                                            }
+
+                                        }
+                                    }
+                                })
+                            }
+
+                        }
+                    }} />
+            </div>
+            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
+                <Input
+                    placeholder={'value'}
+                    type={_let.in.type == DVMType.Uint64 ? 'number' : 'text'}
+                    value={_let.in.valueSet || ''}
+                    onChange={(value) => {
+                        const newLet: Let = _let.in.type == DVMType.Uint64
+                            ? {
+                                ..._let,
+                                in: {
+                                    type: DVMType.Uint64,
+                                    valueSet: value == null ? null : Number(value)
+                                }
+                            } : {
+                                ..._let,
+                                in: {
+                                    type: DVMType.String,
+                                    valueSet: value == null ? null : value
+                                }
+                            }
+                        updateNodes({
+                            action: NodesAction.EditNode,
+                            data: {
+                                id,
+                                newData: {
+                                    type: NodeDataKind.Let,
+                                    let: newLet
+                                }
+                            }
+                        })
+
+                    }}
+                />
+            </div>
+
+
+        </> : <>
+                    
+            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
+                {_let.in.valueSet == null ? <NodeConnector
+                    id={id}
+                    inout={2}
+                    size={12}
+                    color={_let.in.type == DVMType.String ? colors.stringType(500) : _let.in.type == DVMType.Uint64 ? colors.numericType(500) : colors.whiteAlpha(400)}
+                    type={{ type: 'value', valueType: _let.in.type }}
+                    way='in' /> : null}
+                <span>{_let.name} {_let.in.valueSet != null ? '<-' : null} {_let.in.valueSet}</span>
+            </div>
+        </>
+        }
+
+    </>
+}
+
+export const VariableNode = ({ id, variable }: { id: number } & VariableNodeData) => {
+    const [functions] = useAtom(functionsAtom);
+    const [selectedFunction] = useAtom(selectedFunctionAtom);
+
+    const vars = functions[unwrap(selectedFunction)].vars;
+    const { nodes, updateNodes } = useGraphAtomReducer();
+
+    const edit = nodes[id].edit;
+
+    return <>
+
+        <div style={styles.row}>
+            {edit
+                ? <SelectPicker data={Object.keys(vars).map(k => ({ label: k, value: k }))} defaultValue={variable.name} onChange={(value) => {
+                    if (value != null) {
+                        updateNodes({
+                            action: NodesAction.EditNode,
+                            data: { id, newData: { type: NodeDataKind.Variable, variable: { name: value } } }
+                        })
+                    }
+                }} />
+                : <div>{variable.name}</div>}
+            <NodeConnector
+                id={id}
+                inout={0}
+                size={12}
+                color={vars[variable.name].type == DVMType.String ? colors.stringType(500) : vars[variable.name].type == DVMType.Uint64 ? colors.numericType(500) : colors.whiteAlpha(400)}
+                type={{ type: 'value', valueType: vars[variable.name].type }}
+                way='out' />
+        </div>
+    </>
+}
+
+/*
+export const DimNode = ({ id, dim }: { id: number } & DimNodeData) => {
+    const { nodes, updateNodes, links } = useGraphAtomReducer();
+    const node = nodes[id];
+    const edit = node.edit;
+    const nodeWidth = 128;
+    const returnTypes: { label: DVMType, value: DVMType }[] = [
+        { label: DVMType.String, value: DVMType.String },
+        { label: DVMType.Uint64, value: DVMType.Uint64 },
+    ]
+    return <>
+        {edit ? <>
+            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
+                <Input
+                    placeholder={'Variable Name'}
+                    type={'text'}
+                    value={dim.name || ''}
+                    style={{ outline: dim.name == '' ? '2px solid red' : 'none' }}
+                    onChange={(value) => {
+                        if (dim.name != null && value != '') {
+                            updateNodes({
+                                action: NodesAction.EditNode,
+                                data: {
+                                    id,
+                                    newData: {
+                                        type: NodeDataKind.Dim,
+                                        dim: {
+                                            ...dim,
+                                            name: value
+                                        }
+
+                                    }
+                                }
+                            })
+                        }
+                    }}
+                />
+            </div>
+            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
+                <SelectPicker data={returnTypes} defaultValue={dim.type} style={{ width: '100%' }}
+                    onChange={(value) => {
+                        if (value != null) {
+                            updateNodes({
+                                action: NodesAction.EditNode,
+                                data: {
+                                    id,
+                                    newData: {
+                                        type: NodeDataKind.Dim,
+                                        dim: {
+                                            ...dim,
+                                            type: value,
+                                        }
+
+                                    }
+                                }
+                            })
+                        }
+                    }} />
+            </div>
+
+        </> :
+            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}> {dim.name} </div>
+        }
+
+    </>
+}
+*/
+
+// TODO create DIM / LET and VARIABLE nodes
+/*export const DimLetNode = ({ id, dimlet }: { id: number } & DimLetNodeData) => {
     const { nodes, updateNodes, links } = useGraphAtomReducer();
     const node = nodes[id];
     const edit = node.edit;
@@ -970,4 +1233,4 @@ export const DimLetNode = ({ id, dimlet }: { id: number } & DimLetNodeData) => {
         }
 
     </>
-}
+}*/

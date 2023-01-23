@@ -23,7 +23,8 @@ export enum NodeDataKind {
     Argument = 'argument',
     Function = 'function',
     Process = 'process',
-    DimLet = 'dim-let',
+    Let = 'let',
+    Variable = 'variable',
     Goto = 'goto',
     End = 'end',
     Control = 'control',
@@ -35,7 +36,8 @@ export type NodeData =
     | { type: NodeDataKind.End } & EndNodeData
     | { type: NodeDataKind.Control } & ControlNodeData
     | { type: NodeDataKind.Function } & FunctionNodeData
-    | { type: NodeDataKind.DimLet } & DimLetNodeData
+    | { type: NodeDataKind.Let } & LetNodeData
+    | { type: NodeDataKind.Variable } & VariableNodeData
     | { type: NodeDataKind.Process } & ProcessNodeData
     | { type: NodeDataKind.Argument } & ArgumentNodeData
 
@@ -93,19 +95,24 @@ export type Condition =
     | { type: 'Boolean', operator: BooleanConditionOperator, valueSet: { left: (number | null), right: (number | null) } }
 
 
-export type DimLetNodeData = {
-    dimlet: DVMDimLet
+
+export type LetNodeData = {
+    let: Let
 }
 
-export type DVMDimLet = {
-    name: string | null,
-} & ({
-    args: { in: StringType },
-    return: StringType,
-} | {
-    args: { in: Uint64Type },
-    return: Uint64Type,
-})
+export type VariableNodeData = {
+    variable: { name: string }
+}
+
+export type Dim = {
+    name: string,
+    type: DVMType
+}
+
+export type Let = {
+    name: string,
+    in: StringType | Uint64Type,
+} 
 
 
 export type FunctionNodeData = {

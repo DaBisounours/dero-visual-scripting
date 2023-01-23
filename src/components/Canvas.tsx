@@ -13,7 +13,7 @@ import { useGraphAtomReducer, functionsAtom } from "../graph/graph";
 import { LinksAction, linkEquals } from "../graph/links";
 import { Node, NodeLink, NodesAction, NodeOffset, Offset, Position, NodeDataKind, NumericConditionOperator, StringConditionOperator } from "../graph/nodes";
 import { selectedFunctionAtom } from "../App";
-import { defaultDimLet, defaultDVMFunctionMap, DVM, DVMFunction, DVMType } from "../dvm/types";
+import { defaultDVMFunctionMap, DVM, DVMType } from "../dvm/types";
 import CheckOutlineIcon from '@rsuite/icons/CheckOutline';
 import CloseOutlineIcon from '@rsuite/icons/CloseOutline';
 
@@ -173,7 +173,7 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
             value: '-1',
             children: [
                 { label: 'Argument', value: 'argument' },
-            ], disabled: true
+            ]
         },
         {
             label: NodeDataKind.Process,
@@ -192,10 +192,11 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
             ]
         },
         {
-            label: NodeDataKind.DimLet,
+            label: 'variable',
             value: '2',
             children: [
-                { label: 'Dim-Let', value: 'dim-let' }
+                { label: 'Let (assign)', value: 'let' },
+                { label: 'Variable (use)', value: 'variable' },
             ]
         },
         {
@@ -267,15 +268,39 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
                     }
                     return n;
                 })
-                .with('dim-let', () => {
+                .with('let', () => {
+                    const vars = functions[unwrap(selectedFunction)].vars
+                    const _var = Object.keys(vars)[0];
+                    const type = vars[_var].type
+                    console.warn(_var);
+                    
+                    if (type != DVMType.Variable) {
+                        const n: Node = {
+                            name: "Let",
+                            edit: false,
+                            locked: false,
+                            position,
+                            data: {
+                                type: NodeDataKind.Let,
+                                // @ts-ignore //! messy
+                                let: { name: _var, in: { type, value: null } },
+                            }
+                        }
+                        return n;
+                    }
+
+                })
+                .with('variable', () => {
+                    const vars = functions[unwrap(selectedFunction)].vars
+                    const _var = Object.keys(vars)[0];
                     const n: Node = {
-                        name: "Dim - Let",
+                        name: "Variable",
                         edit: false,
                         locked: false,
                         position,
                         data: {
-                            type: NodeDataKind.DimLet,
-                            dimlet: defaultDimLet,
+                            type: NodeDataKind.Variable,
+                            variable: { name: _var },
                         }
                     }
                     return n;
@@ -374,7 +399,11 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
             placeholder='Add node'
             defaultValue={null}
             defaultOpen={defaultOpen}
-            disabledItemValues={['none', ...(Object.keys(functions[unwrap(selectedFunction)].args).length > 0 ? [] : ['-1'])]}
+            disabledItemValues={[
+                'none', 
+                ...(Object.keys(functions[unwrap(selectedFunction)].args).length > 0 ? [] : ['-1']), 
+                ...(Object.keys(functions[unwrap(selectedFunction)].vars).length > 0 ? [] : ['2']), 
+            ]}
             data={addNodeData}
 
             menuWidth={200}

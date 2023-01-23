@@ -327,7 +327,7 @@ function App() {
   }, [])
 
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
-  const [codeDrawerOpen, setCodeDrawerOpen] = useState(false);
+  const [codeDrawerOpen, setCodeDrawerOpen] = useState(true);
 
   const [editFunctionModalOpen, setEditFunctionModalOpen] =
     useState(false);
