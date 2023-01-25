@@ -20,7 +20,8 @@ yarn && yarn dev
     - [x] DIMs are put at the top of the function, variables declared in the start node like the args
     - [x] make let nodes like a process with one input 
     - [x] make a variable node to use the name
-  - [ ] make an Operation node for +, -, *, /, %, and also boolean &&, ||, ... (check docs)
+  - [x] Make an Operation node for +, -, *, /, %, and also boolean &&, ||, ... (check docs)
+  - [x] Refactor the control node to make it simpler. Conditions can be made with operation nodes
   - [x] Display Code in an expandable window on the right side
   - [ ] Export only a subset of functions
   - [ ] Rename function
@@ -28,6 +29,8 @@ yarn && yarn dev
   - [ ] Remove function or process
   - [ ] [OPTIONAL] Graph schema Versionning and retrocompatibility
   - [ ] [OPTIONAL] Make links splines instead of straight lines
+- Code generation
+  - [ ] Parenthesis on expressions?
 - Docs
   - [ ] Write some basic documentation
   - [ ] Make a tutorial video

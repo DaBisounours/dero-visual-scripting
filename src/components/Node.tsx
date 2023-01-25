@@ -67,6 +67,8 @@ export function AbstractNode({ id, selected, onMouseDown }: AbstractNodeProps) {
             color: match(data.type)
                 .with(NodeDataKind.End, _ => 'lime')
                 .with(NodeDataKind.Function, _ => 'magenta')
+                .with(NodeDataKind.Operation, _ => 'magenta')
+                .with(NodeDataKind.Condition, _ => 'coral')
                 .with(NodeDataKind.Control, _ => 'coral')
                 .with(NodeDataKind.Process, _ => 'lightskyblue')
                 .with(NodeDataKind.Start, _ => 'cornsilk')

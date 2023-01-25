@@ -22,7 +22,9 @@ export enum NodeDataKind {
     Start = 'start',
     Argument = 'argument',
     Function = 'function',
-    Process = 'process',
+    Operation = 'operation',
+    Condition = 'condition',
+    Process = 'process', // TODO rename to Procedure or Subroutine
     Let = 'let',
     Variable = 'variable',
     Goto = 'goto',
@@ -36,6 +38,8 @@ export type NodeData =
     | { type: NodeDataKind.End } & EndNodeData
     | { type: NodeDataKind.Control } & ControlNodeData
     | { type: NodeDataKind.Function } & FunctionNodeData
+    | { type: NodeDataKind.Operation } & OperationNodeData
+    | { type: NodeDataKind.Condition } & ConditionNodeData
     | { type: NodeDataKind.Let } & LetNodeData
     | { type: NodeDataKind.Variable } & VariableNodeData
     | { type: NodeDataKind.Process } & ProcessNodeData
@@ -55,45 +59,39 @@ export type EndNodeData = {
 
 export type ControlNodeData = {
     control:
-    | { type: 'if', condition: Condition, } // + INs and OUTs
+    | { type: 'if' }
 }
 
-export enum StringConditionOperator {
-    Equals = 'is',
-    Different = 'is not',
+
+export enum Uint64Comparator {
+    Equals = '==',
+    Greater = '>',
+    GreaterOrEquals = '>=',
+    Lower = '<',
+    LowerOrEquals = '<=',
+    Differs = '!=',
 }
 
-export const stringContitionOperatorMap: { [o in StringConditionOperator]: string } = {
-    [StringConditionOperator.Equals]: "==",
-    [StringConditionOperator.Different]: "!=",
+export const isUint64Comparator = (v: string): v is Uint64Comparator => Object.values<string>(Uint64Comparator).includes(v);
+
+export enum StringComparator {
+    Equals = '==',
+    Different = '!=',
 }
 
-export enum BooleanConditionOperator {
-    IsTrue = 'is true',
-    IsNotTrue = 'is not true',
-}
+export const isStringComparator = (v: string): v is StringComparator => Object.values<string>(StringComparator).includes(v);
 
-export enum NumericConditionOperator {
-    Equals = 'equals to',
-    Greater = 'greater than',
-    GreaterOrEquals = 'greater or same',
-    Lower = 'lower than',
-    LowerOrEquals = 'lower or same',
-}
 
-export const numericContitionOperatorMap: { [o in NumericConditionOperator]: string } = {
-    [NumericConditionOperator.Equals]: "==",
-    [NumericConditionOperator.Greater]: ">",
-    [NumericConditionOperator.GreaterOrEquals]: ">=",
-    [NumericConditionOperator.Lower]: "<",
-    [NumericConditionOperator.LowerOrEquals]: "<="
-}
 
 export type Condition =
-    | { type: DVMType.String, operator: StringConditionOperator, valueSet: { left: (string | null), right: (string | null) } }
-    | { type: DVMType.Uint64, operator: NumericConditionOperator, valueSet: { left: (number | null), right: (number | null) } }
-    | { type: 'Boolean', operator: BooleanConditionOperator, valueSet: { left: (number | null), right: (number | null) } }
+    | { type: DVMType.String, operator: StringComparator, valueSet: { left: (string | null), right: (string | null) } }
+    | { type: DVMType.Uint64, operator: Uint64Comparator, valueSet: { left: (number | null), right: (number | null) } }
 
+
+
+export type ConditionNodeData = {
+    condition: Condition
+}
 
 
 export type LetNodeData = {
@@ -112,13 +110,42 @@ export type Dim = {
 export type Let = {
     name: string,
     in: StringType | Uint64Type,
-} 
+}
 
 
 export type FunctionNodeData = {
     function: DVMFunction
 }
 
+export enum Uint64Operator {
+    Add = '+',
+    Subtract = '-',
+    Multiply = '*',
+    Divide = '/',
+    Modulo = '%',
+    BitwiseAnd = '&',
+    BitwiseOr = '|',
+    BitwiseXOr = '^',
+    BitwiseNot = '!',
+    BitwiseRightShift = '>>',
+    BitwiseLeftShift = '<<',
+}
+
+export const isUint64Operator = (v: string): v is Uint64Operator => Object.values<string>(Uint64Operator).includes(v);
+
+export enum StringOperator {
+    Concatenate = '+',
+}
+
+export const isStringOperator = (v: string): v is StringOperator => Object.values<string>(StringOperator).includes(v);
+
+export type Operation =
+    | { type: DVMType.String, operator: StringOperator, valueSet: { left: string | null, right: string | null } }
+    | { type: DVMType.Uint64, operator: Uint64Operator, valueSet: { left: number | null, right: number | null } }
+
+export type OperationNodeData = {
+    operation: Operation
+}
 
 
 export type ProcessNodeData = {
@@ -244,9 +271,12 @@ export const nodesImmerReducer: NodesImmerReducer = (draft, action) => {
                 if (node.type == NodeDataKind.Function) {
                     // @ts-ignore //! ignored
                     node.function.args[data.arg as keyof typeof node.function.args].valueSet = data.valueSet;
-                } else if (node.type == NodeDataKind.Control) {
+                } else if (node.type == NodeDataKind.Condition) {
                     // @ts-ignore //! ignored
-                    node.control.condition.valueSet[data.arg] = data.valueSet;
+                    node.condition.valueSet[data.arg] = data.valueSet;
+                } else if (node.type == NodeDataKind.Operation) {
+                    // @ts-ignore //! ignored
+                    node.operation.valueSet[data.arg] = data.valueSet;
                 }
             } else {
                 console.error('node not found');

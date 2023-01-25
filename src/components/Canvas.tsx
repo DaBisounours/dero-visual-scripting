@@ -11,7 +11,7 @@ import { connectorLinkingAtom } from "./Connector";
 import { useKeyPress } from "../utils/misc";
 import { useGraphAtomReducer, functionsAtom } from "../graph/graph";
 import { LinksAction, linkEquals } from "../graph/links";
-import { Node, NodeLink, NodesAction, NodeOffset, Offset, Position, NodeDataKind, NumericConditionOperator, StringConditionOperator } from "../graph/nodes";
+import { Node, NodeLink, NodesAction, NodeOffset, Offset, Position, NodeDataKind, StringComparator, Uint64Operator } from "../graph/nodes";
 import { selectedFunctionAtom } from "../App";
 import { defaultDVMFunctionMap, DVM, DVMType } from "../dvm/types";
 import CheckOutlineIcon from '@rsuite/icons/CheckOutline';
@@ -165,7 +165,7 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
     const [containerPosition, setContainerPosition] = useState<Position>({ x: 0, y: 0 });
 
     const [selectedFunction] = useAtom(selectedFunctionAtom);
-    const processes = hasSome(selectedFunction) ? Object.keys(functions).filter(name => functions[name].isProcess && name != unwrap(selectedFunction)) : []
+    const processes = hasSome(selectedFunction) ? Object.keys(functions).filter(name => /*functions[name].isProcess &&*/ name != unwrap(selectedFunction)) : []
 
     const addNodeData = [
         {
@@ -203,13 +203,18 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
             label: NodeDataKind.Control,
             value: '3',
             children: [
-                { label: 'Condition', value: 'if' },
-                { label: 'GOTO', value: 'goto' },
+                { label: 'If', value: 'if' },
+                { label: 'Condition', value: 'condition' },
+                { label: 'Goto', value: 'goto' },
             ]
         },
         {
+            label: NodeDataKind.Operation,
+            value: 'operation',
+        },
+        {
             label: NodeDataKind.Function,
-            value: '4',
+            value: '5',
             children: [
                 ...Object.values(DVM).map(value => ({ label: value, value: JSON.stringify({ dvm: value }) }))
             ]
@@ -307,7 +312,7 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
                 })
                 .with('if', () => {
                     const n: Node = {
-                        name: "Condition",
+                        name: "If",
                         edit: false,
                         locked: false,
                         position,
@@ -315,14 +320,45 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
                             type: NodeDataKind.Control,
                             control: {
                                 type: 'if',
-                                condition: {
-                                    type: DVMType.String,
-                                    operator: StringConditionOperator.Equals,
-                                    valueSet: {
-                                        left: null, right: null
-                                    }
+                            }
+                        }
+                    }
+                    return n;
+                })
+                .with('condition', () => {
+                    const n: Node = {
+                        name: 'Condition',
+                        edit: false,
+                        locked: false,
+                        position,
+                        data: {
+                            type: NodeDataKind.Condition,
+                            condition: {
+                                type: DVMType.String,
+                                operator: StringComparator.Equals,
+                                valueSet: {
+                                    left: null, right: null
                                 }
                             }
+                        }
+                    }
+                    return n;
+                })
+                .with('operation', () => {
+                    const n: Node = {
+                        name: "Operation",
+                        edit: false,
+                        locked: false,
+                        position,
+                        data: {
+                            type: NodeDataKind.Operation,
+                            operation: { 
+                                type: DVMType.Uint64, 
+                                operator: Uint64Operator.Add,
+                                valueSet: { left: null, right: null }
+                            },
+                            
+                            
                         }
                     }
                     return n;
@@ -407,7 +443,7 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
             data={addNodeData}
 
             menuWidth={200}
-            menuHeight={250}
+            menuHeight={256}
             style={{ zIndex: 10 }}
             value={null}
             onChange={onCascaderValueSelected} />

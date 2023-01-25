@@ -5,7 +5,7 @@ import { match } from "ts-pattern"
 import { selectedFunctionAtom } from "../App"
 import { DVM, DVMType, Uint64 } from "../dvm/types"
 import { functionsAtom, useGraphAtomReducer } from "../graph/graph"
-import { ConnectionData, NodeLinkTo, NodeLinkFrom, Connector, Position, NodeDataKind, EndNodeData, NodesAction, ProcessNodeData, ControlNodeData, FunctionNodeData, LetNodeData, VariableNodeData, StringConditionOperator, NumericConditionOperator, BooleanConditionOperator, Let, } from "../graph/nodes"
+import { ConnectionData, NodeLinkTo, NodeLinkFrom, Connector, Position, NodeDataKind, EndNodeData, NodesAction, ProcessNodeData, ControlNodeData, FunctionNodeData, LetNodeData, VariableNodeData, StringComparator, Uint64Comparator, Let, OperationNodeData, Uint64Operator, StringOperator, Operation, isStringOperator, isUint64Operator, ConditionNodeData, isUint64Comparator, isStringComparator, } from "../graph/nodes"
 import { colors } from "../utils/theme"
 import { hasSome, unwrap } from "../utils/variants"
 import { NodeConnector } from "./Connector"
@@ -77,8 +77,14 @@ export const NodeContent = ({ id }: { id: number }) => {
         .with({ type: NodeDataKind.Control }, ({ control }) =>
             <ControlNode id={id} control={control} />
         )
+        .with({ type: NodeDataKind.Condition }, ({ condition }) =>
+            <ConditionNode id={id} condition={condition} />
+        )
         .with({ type: NodeDataKind.Function }, ({ function: _function }) =>
             <FunctionNode id={id} function={_function} />
+        )
+        .with({ type: NodeDataKind.Operation }, ({ operation }) =>
+            <OperationNode id={id} operation={operation} />
         )
         .with({ type: NodeDataKind.Let }, ({ let: _let }) =>
             <LetNode id={id} let={_let} />
@@ -242,7 +248,7 @@ export const StartNode = ({ id }: { id: number }) => {
                 type={{ type: 'flow' }}
                 way='out' />
         </div>
-        <Separator/>
+        <Separator />
         {existingArgs.map((arg, index) =>
             <div key={index} style={styles.row}>
                 <div>{arg.name}</div>
@@ -481,8 +487,13 @@ export const ProcessNode = ({ id, process }: { id: number } & ProcessNodeData) =
     const { nodes } = useGraphAtomReducer();
     const node = nodes[id];
     const edit = node.edit;
+    const [functions, setFunctions] = useAtom(functionsAtom);
+    const [selectedFunction] = useAtom(selectedFunctionAtom);
 
-
+    const f = functions[process.name]
+    const args = f.args;
+    const argList = Object.keys(args);
+    
     return <>
         <div style={styles.row}>
             <NodeConnector
@@ -502,19 +513,34 @@ export const ProcessNode = ({ id, process }: { id: number } & ProcessNodeData) =
                 way='out' />
         </div>
 
+        {argList.map((argName, index) => {
+            const arg = args[argName];
+            return <div key={index} style={styles.row}>
+            <NodeConnector
+                id={id}
+                inout={2 + index}
+                size={12}
+                color={arg.type == DVMType.Uint64 ? colors.numericType(500) : arg.type == DVMType.String ? colors.stringType(500) : colors.whiteAlpha(400)}
+                type={{ type: 'value', valueType: arg.type }}
+                way='in' />
+                {argName}
+            </div>
+        })}
+
         <div style={styles.row}>
             <div>output</div>
             <NodeConnector
                 id={id}
-                inout={2}
+                inout={2 + argList.length}
                 size={12}
-                color={colors.whiteAlpha(400)}
-                type={{ type: 'value', valueType: 'Variable' }}
+                color={f.return == DVMType.Uint64 ? colors.numericType(500) : f.return == DVMType.String ? colors.stringType(500) : colors.whiteAlpha(400)}
+                type={{ type: 'value', valueType: f.return }}
                 way='out' />
         </div>
     </>
 }
 
+/*
 export const ControlNode = ({ id, control }: { id: number } & ControlNodeData) => {
     const { nodes, updateNodes } = useGraphAtomReducer();
     const node = nodes[id];
@@ -750,6 +776,51 @@ export const ControlNode = ({ id, control }: { id: number } & ControlNodeData) =
     </>
 
 
+}*/
+export const ControlNode = ({ id, control }: { id: number } & ControlNodeData) => {
+    const { nodes, updateNodes } = useGraphAtomReducer();
+    const node = nodes[id];
+    const edit = node.edit;
+
+    return <>
+        <div style={styles.row}>
+            <NodeConnector
+                id={id}
+                inout={0}
+                size={12}
+                color={colors.whiteAlpha(400)}
+                type={{ type: 'flow' }}
+                way='in' />
+            {control.type}
+        </div>
+        <div style={styles.row}>
+            <NodeConnector
+                id={id}
+                inout={1}
+                size={12}
+                color={colors.numericType(500)}
+                type={{ type: 'value', valueType: DVMType.Uint64 }}
+                way='in' />
+            condition
+        </div>
+        <Separator />
+        {
+            ['then', 'else'].map((outName, index) =>
+                <div key={outName} style={styles.row}>
+                    {outName}
+                    <NodeConnector
+                        id={id}
+                        inout={2 + index}
+                        size={12}
+                        color={colors.whiteAlpha(400)}
+                        type={{ type: 'flow' }}
+                        way='out' />
+                </div>
+            )
+
+        }
+
+    </>
 }
 
 export const FunctionNode = ({ id, function: _function }: { id: number } & FunctionNodeData) => {
@@ -868,6 +939,415 @@ export const FunctionNode = ({ id, function: _function }: { id: number } & Funct
 
 
 
+export const OperationNode = ({ id, operation }: { id: number } & OperationNodeData) => {
+    const { nodes, updateNodes } = useGraphAtomReducer();
+    const node = nodes[id];
+    const edit = node.edit;
+
+    const types = [{ label: DVMType.String, value: DVMType.String }, { label: `${DVMType.Uint64} / Boolean`, value: DVMType.Uint64 }]
+    const uint64OperatorMap: { [op in Uint64Operator]: string } = {
+        [Uint64Operator.Add]: 'Add',
+        [Uint64Operator.Subtract]: 'Subtract',
+        [Uint64Operator.Multiply]: 'Multiply',
+        [Uint64Operator.Divide]: 'Divide',
+        [Uint64Operator.Modulo]: 'Modulo',
+        [Uint64Operator.BitwiseAnd]: 'BitwiseAnd',
+        [Uint64Operator.BitwiseOr]: 'BitwiseOr',
+        [Uint64Operator.BitwiseXOr]: 'BitwiseXOr',
+        [Uint64Operator.BitwiseNot]: 'BitwiseNot',
+        [Uint64Operator.BitwiseRightShift]: 'BitwiseRightShift',
+        [Uint64Operator.BitwiseLeftShift]: 'BitwiseLeftShift'
+    };
+    const stringOperatorMap: { [op in StringOperator]: string } = {
+        [StringOperator.Concatenate]: 'Concatenate',
+    };
+    const operators = operation.type == DVMType.Uint64
+        ? Object.entries(uint64OperatorMap).map(([op, _op]) => {
+            const oper: Uint64Operator = Uint64Operator[_op as keyof typeof Uint64Operator];
+            return { label: `${op} (${_op})`, value: oper }
+        })
+        : Object.entries(stringOperatorMap).map(([op, _op]) => {
+            const oper: StringOperator = StringOperator[_op as keyof typeof StringOperator];
+            return { label: `${op} (${_op})`, value: oper }
+        })
+
+
+    const color = operation.type == DVMType.Uint64 ? colors.numericType(500) : operation.type == DVMType.String ? colors.stringType(500) : colors.whiteAlpha(400);
+    return <>
+
+        {!edit ? <>
+            <div style={styles.row}>
+                {operation.valueSet.left == null
+                    ? <><NodeConnector
+                        id={id}
+                        inout={0}
+                        size={12}
+                        color={color}
+                        type={{ type: 'value', valueType: operation.type }}
+                        way='in' /> value</>
+                    : <><div></div>{operation.valueSet.left}</>
+                }
+
+            </div>
+            <div style={styles.row}>
+                <div></div> <h5>{operation.operator}</h5>
+            </div>
+            {operation.operator != Uint64Operator.BitwiseNot ?
+                <div style={styles.row}>
+                    {operation.valueSet.right == null
+                        ? <><NodeConnector
+                            id={id}
+                            inout={1}
+                            size={12}
+                            color={color}
+                            type={{ type: 'value', valueType: operation.type }}
+                            way='in' /> value</>
+                        : <><div></div>{operation.valueSet.right}</>
+                    }
+                </div> : null}
+        </> : <>
+            <div style={{ ...styles.row, width: '100%' }}>
+                <SelectPicker data={types} defaultValue={operation.type} style={{ width: '100%' }}
+                    onChange={(value) => {
+                        match(value)
+                            .with(DVMType.Uint64, t => {
+                                updateNodes({
+                                    action: NodesAction.EditNode,
+                                    data: {
+                                        id,
+                                        newData: {
+                                            type: NodeDataKind.Operation,
+                                            operation: {
+                                                type: t,
+                                                operator: Uint64Operator.Add,
+                                                valueSet: { left: null, right: null }
+                                            }
+
+                                        }
+                                    }
+                                })
+                            })
+                            .with(DVMType.String, t => {
+                                updateNodes({
+                                    action: NodesAction.EditNode,
+                                    data: {
+                                        id,
+                                        newData: {
+                                            type: NodeDataKind.Operation,
+                                            operation: {
+                                                type: t,
+                                                operator: StringOperator.Concatenate,
+                                                valueSet: { left: null, right: null }
+                                            }
+
+                                        }
+                                    }
+                                })
+                            })
+                            .otherwise(_ => { })
+                    }} />
+            </div>
+
+            <div style={{ ...styles.row, width: '100%', gap: 0 }}>
+                <Checkbox checked={operation.valueSet.left != null} onChange={(_, checked) => {
+                    updateNodes({
+                        action: NodesAction.EditNodeArgValue,
+                        data: { id, arg: 'left', valueSet: checked ? operation.type == DVMType.Uint64 ? 0 : '' : null }
+                    })
+                }} />
+                <Input value={operation.valueSet.left == null ? undefined : operation.valueSet.left} type={operation.type == DVMType.Uint64 ? 'number' : 'text'}
+                    onChange={(value) => {
+                        const v = operation.type == DVMType.Uint64 ? value == '' ? null : Number(value) : value;
+                        updateNodes({
+                            action: NodesAction.EditNodeArgValue,
+                            data: { id, arg: 'left', valueSet: v }
+                        })
+                    }} />
+            </div>
+
+            <div style={{ ...styles.row, width: '100%' }}>
+                <SelectPicker data={operators} defaultValue={operation.operator} style={{ width: '100%' }}
+                    onChange={(value) => {
+                        console.warn(value);
+
+                        if (value != null) {
+                            if (isUint64Operator(value) && operation.type == DVMType.Uint64) {
+
+                                updateNodes({
+                                    action: NodesAction.EditNode,
+                                    data: {
+                                        id,
+                                        newData: {
+                                            type: NodeDataKind.Operation,
+                                            operation: {
+                                                type: operation.type,
+                                                operator: value,
+                                                valueSet: { left: null, right: null }
+                                            }
+
+                                        }
+                                    }
+                                })
+                            } else if (isStringOperator(value) && operation.type == DVMType.String) {
+                                updateNodes({
+                                    action: NodesAction.EditNode,
+                                    data: {
+                                        id,
+                                        newData: {
+                                            type: NodeDataKind.Operation,
+                                            operation: {
+                                                type: operation.type,
+                                                operator: value,
+                                                valueSet: { left: null, right: null }
+                                            }
+
+                                        }
+                                    }
+                                })
+                            }
+
+                        }
+                    }} />
+            </div>
+
+            {operation.operator != Uint64Operator.BitwiseNot ?
+                <div style={{ ...styles.row, width: '100%', gap: 0 }}>
+                    <Checkbox checked={operation.valueSet.right != null} onChange={(_, checked) => {
+                        updateNodes({
+                            action: NodesAction.EditNodeArgValue,
+                            data: { id, arg: 'right', valueSet: checked ? operation.type == DVMType.Uint64 ? 0 : '' : null }
+                        })
+                    }} />
+                    <Input value={operation.valueSet.right == null ? undefined : operation.valueSet.right} type={operation.type == DVMType.Uint64 ? 'number' : 'text'}
+                        onChange={(value) => {
+                            const v = operation.type == DVMType.Uint64 ? value == '' ? null : Number(value) : value;
+                            updateNodes({
+                                action: NodesAction.EditNodeArgValue,
+                                data: { id, arg: 'right', valueSet: v }
+                            })
+                        }} />
+                </div>
+                : null}
+        </>}
+        <Separator />
+        <div style={styles.row}>
+            <div>output</div>
+            <NodeConnector
+                id={id}
+                inout={1}
+                size={12}
+                color={color}
+                type={{ type: 'value', valueType: operation.type }}
+                way='out' />
+        </div>
+    </>
+}
+
+
+
+export const ConditionNode = ({ id, condition }: { id: number } & ConditionNodeData) => {
+    const { nodes, updateNodes } = useGraphAtomReducer();
+    const node = nodes[id];
+    const edit = node.edit;
+
+    const types = [{ label: DVMType.String, value: DVMType.String }, { label: `${DVMType.Uint64} / Boolean`, value: DVMType.Uint64 }]
+    const uint64ComparatorMap: { [op in Uint64Comparator]: string } = {
+        [Uint64Comparator.Equals]: "Equals",
+        [Uint64Comparator.Greater]: "Greater",
+        [Uint64Comparator.GreaterOrEquals]: "GreaterOrEquals",
+        [Uint64Comparator.Lower]: "Lower",
+        [Uint64Comparator.LowerOrEquals]: "LowerOrEquals",
+        [Uint64Comparator.Differs]: "Differs",
+    };
+    const stringComparatorMap: { [op in StringComparator]: string } = {
+        [StringComparator.Equals]: "Equals",
+        [StringComparator.Different]: "Different"
+    };
+    const operators = condition.type == DVMType.Uint64
+        ? Object.entries(uint64ComparatorMap).map(([op, _op]) => {
+            const oper: Uint64Comparator = Uint64Comparator[_op as keyof typeof Uint64Comparator];
+            return { label: `${op} (${_op})`, value: oper }
+        })
+        : Object.entries(stringComparatorMap).map(([op, _op]) => {
+            const oper: StringComparator = StringComparator[_op as keyof typeof StringComparator];
+            return { label: `${op} (${_op})`, value: oper }
+        })
+
+
+    const color = condition.type == DVMType.Uint64 ? colors.numericType(500) : condition.type == DVMType.String ? colors.stringType(500) : colors.whiteAlpha(400);
+    return <>
+
+        {!edit ? <>
+            <div style={styles.row}>
+                {condition.valueSet.left == null
+                    ? <><NodeConnector
+                        id={id}
+                        inout={0}
+                        size={12}
+                        color={color}
+                        type={{ type: 'value', valueType: condition.type }}
+                        way='in' /> value</>
+                    : <><div></div>{condition.valueSet.left}</>
+                }
+
+            </div>
+            <div style={styles.row}>
+                <div></div> <h5>{condition.operator}</h5>
+            </div>
+
+            <div style={styles.row}>
+                {condition.valueSet.right == null
+                    ? <><NodeConnector
+                        id={id}
+                        inout={1}
+                        size={12}
+                        color={color}
+                        type={{ type: 'value', valueType: condition.type }}
+                        way='in' /> value</>
+                    : <><div></div>{condition.valueSet.right}</>
+                }
+            </div>
+        </> : <>
+            <div style={{ ...styles.row, width: '100%' }}>
+                <SelectPicker data={types} defaultValue={condition.type} style={{ width: '100%' }}
+                    onChange={(value) => {
+                        match(value)
+                            .with(DVMType.Uint64, t => {
+                                updateNodes({
+                                    action: NodesAction.EditNode,
+                                    data: {
+                                        id,
+                                        newData: {
+                                            type: NodeDataKind.Condition,
+                                            condition: {
+                                                type: t,
+                                                operator: Uint64Comparator.Equals,
+                                                valueSet: { left: null, right: null }
+                                            }
+
+                                        }
+                                    }
+                                })
+                            })
+                            .with(DVMType.String, t => {
+                                updateNodes({
+                                    action: NodesAction.EditNode,
+                                    data: {
+                                        id,
+                                        newData: {
+                                            type: NodeDataKind.Condition,
+                                            condition: {
+                                                type: t,
+                                                operator: StringComparator.Equals,
+                                                valueSet: { left: null, right: null }
+                                            }
+
+                                        }
+                                    }
+                                })
+                            })
+                            .otherwise(_ => { })
+                    }} />
+            </div>
+
+            <div style={{ ...styles.row, width: '100%', gap: 0 }}>
+                <Checkbox checked={condition.valueSet.left != null} onChange={(_, checked) => {
+                    updateNodes({
+                        action: NodesAction.EditNodeArgValue,
+                        data: { id, arg: 'left', valueSet: checked ? condition.type == DVMType.Uint64 ? 0 : '' : null }
+                    })
+                }} />
+                <Input value={condition.valueSet.left == null ? undefined : condition.valueSet.left} type={condition.type == DVMType.Uint64 ? 'number' : 'text'}
+                    onChange={(value) => {
+                        const v = condition.type == DVMType.Uint64 ? value == '' ? null : Number(value) : value;
+                        updateNodes({
+                            action: NodesAction.EditNodeArgValue,
+                            data: { id, arg: 'left', valueSet: v }
+                        })
+                    }} />
+            </div>
+
+            <div style={{ ...styles.row, width: '100%' }}>
+                <SelectPicker data={operators} defaultValue={condition.operator} style={{ width: '100%' }}
+                    onChange={(value) => {
+                        console.warn(value);
+
+                        if (value != null) {
+                            if (isUint64Comparator(value) && condition.type == DVMType.Uint64) {
+
+                                updateNodes({
+                                    action: NodesAction.EditNode,
+                                    data: {
+                                        id,
+                                        newData: {
+                                            type: NodeDataKind.Condition,
+                                            condition: {
+                                                type: condition.type,
+                                                operator: value,
+                                                valueSet: { left: null, right: null }
+                                            }
+
+                                        }
+                                    }
+                                })
+                            } else if (isStringComparator(value) && condition.type == DVMType.String) {
+                                updateNodes({
+                                    action: NodesAction.EditNode,
+                                    data: {
+                                        id,
+                                        newData: {
+                                            type: NodeDataKind.Condition,
+                                            condition: {
+                                                type: condition.type,
+                                                operator: value,
+                                                valueSet: { left: null, right: null }
+                                            }
+
+                                        }
+                                    }
+                                })
+                            }
+
+                        }
+                    }} />
+            </div>
+
+
+            <div style={{ ...styles.row, width: '100%', gap: 0 }}>
+                <Checkbox checked={condition.valueSet.right != null} onChange={(_, checked) => {
+                    updateNodes({
+                        action: NodesAction.EditNodeArgValue,
+                        data: { id, arg: 'right', valueSet: checked ? condition.type == DVMType.Uint64 ? 0 : '' : null }
+                    })
+                }} />
+                <Input value={condition.valueSet.right == null ? undefined : condition.valueSet.right} type={condition.type == DVMType.Uint64 ? 'number' : 'text'}
+                    onChange={(value) => {
+                        const v = condition.type == DVMType.Uint64 ? value == '' ? null : Number(value) : value;
+                        updateNodes({
+                            action: NodesAction.EditNodeArgValue,
+                            data: { id, arg: 'right', valueSet: v }
+                        })
+                    }} />
+            </div>
+
+        </>}
+        <Separator />
+        <div style={styles.row}>
+            <div>output</div>
+            <NodeConnector
+                id={id}
+                inout={1}
+                size={12}
+                color={colors.numericType(500)}
+                type={{ type: 'value', valueType: DVMType.Uint64 }}
+                way='out' />
+        </div>
+    </>
+}
+
+
+
+
 export const LetNode = ({ id, let: _let }: { id: number } & LetNodeData) => {
     const { nodes, updateNodes } = useGraphAtomReducer();
     const node = nodes[id];
@@ -888,7 +1368,7 @@ export const LetNode = ({ id, let: _let }: { id: number } & LetNodeData) => {
                 color={colors.whiteAlpha(400)}
                 type={{ type: 'flow' }}
                 way='in' />
-            
+
             <NodeConnector
                 id={id}
                 inout={1}
@@ -897,7 +1377,7 @@ export const LetNode = ({ id, let: _let }: { id: number } & LetNodeData) => {
                 type={{ type: 'flow' }}
                 way='out' />
         </div>
-        <Separator/>
+        <Separator />
         {edit ? <>
 
             <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
@@ -965,7 +1445,7 @@ export const LetNode = ({ id, let: _let }: { id: number } & LetNodeData) => {
 
 
         </> : <>
-                    
+
             <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
                 {_let.in.valueSet == null ? <NodeConnector
                     id={id}

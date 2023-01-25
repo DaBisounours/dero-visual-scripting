@@ -3,7 +3,7 @@ import { useAtom } from "jotai"
 import { selectedFunctionAtom } from "../App"
 import { hasSome, unwrap } from "../utils/variants"
 import { LinksReduce, linksImmerReducer } from "./links"
-import { Node, NodeLink, NodeDataKind, NodesReduce, nodesImmerReducer, numericContitionOperatorMap, stringContitionOperatorMap } from "./nodes"
+import { Node, NodeLink, NodeDataKind, NodesReduce, nodesImmerReducer, StringOperator, Uint64Operator, Uint64Comparator } from "./nodes"
 import { DVM, DVMType } from '../dvm/types'
 import { atomWithStorage } from 'jotai/utils'
 import { match } from 'ts-pattern'
@@ -338,9 +338,16 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
 
             const args = argNames.map((name, index) => {
                 // @ts-ignore //! what else ?
-                const valueSet = data.function.args[name].valueSet;
+                const arg = data.function.args[name]
+                const valueSet = arg.valueSet;
+                
                 if (valueSet != null) {
-                    return valueSet;
+                    if (arg.type == DVMType.String) {
+                        return `"${valueSet}"` // TODO Handle that better at the node level => Get rid of variable type
+                    } else {
+                        return valueSet;
+                    }
+                    
                 } else {
                     // find expression
                     const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == (asProcess ? index + 2 : index));
@@ -365,6 +372,61 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
             }
             expressions[output] = expression
         })
+        .with({ type: NodeDataKind.Operation }, data => {
+
+
+            const left = data.operation.valueSet.left;
+            const right = data.operation.valueSet.right;
+            const operator = data.operation.operator;
+            let expression = '';
+            let inout_index = 0;
+            if (operator == Uint64Operator.BitwiseNot) {
+                expression += '!'
+            }
+
+            if (left == null) {
+                const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == 0);
+                if (link !== undefined) {
+                    const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
+                    const fromNode = processed[fromNodeId]
+                    if (fromNode != null) {
+                        expression += fromNode.expressions[fromOutput]
+                    }
+                }
+                inout_index += 1
+            } else {
+                if (data.operation.type == DVMType.String) {
+                    expression += `"${left}"`;
+                } else {
+                    expression += left;
+                }
+
+            }
+
+            if (operator != Uint64Operator.BitwiseNot) {
+                expression += ' ' + operator + ' '
+            }
+
+            if (right == null && operator != Uint64Operator.BitwiseNot) {
+                const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == 1);
+                if (link !== undefined) {
+                    const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
+                    const fromNode = processed[fromNodeId]
+                    if (fromNode != null) {
+                        expression += fromNode.expressions[fromOutput]
+                    }
+                }
+                inout_index += 1
+            } else {
+                if (data.operation.type == DVMType.String) {
+                    expression += `"${right}"`;
+                } else {
+                    expression += right;
+                }
+            }
+
+            expressions[operator == Uint64Operator.BitwiseNot ? 1 : inout_index] = expression
+        })
         .with({ type: NodeDataKind.Let }, data => {
             //statements.push('DIM ' + data.dimlet.name + ' as ' + data.dimlet.return.type)
             if (data.let.in.valueSet == null) {
@@ -374,11 +436,8 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                     const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
                     const fromNode = processed[fromNodeId]
                     if (fromNode != null) {
-                        console.warn({fromNode, fromOutput});
-                        
                         statements.push('LET ' + data.let.name + ' = ' + fromNode.expressions[fromOutput])
                     }
-
                 }
             } else {
                 statements.push('LET ' + data.let.name + ' = ' + data.let.in.valueSet)
@@ -407,7 +466,30 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
             }
         })
         .with({ type: NodeDataKind.Control, control: { type: 'if' } }, data => {
-            const condition = data.control.condition;
+            let statement = 'IF (';
+
+            // find expression
+            const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == 1);
+            if (link !== undefined) {
+                const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
+                console.warn({fromNodeId, fromOutput});
+                
+                const fromNode = processed[fromNodeId]
+                if (fromNode != null) {
+                    statement += fromNode.expressions[fromOutput]
+                }
+            }
+            const outLinks = edges
+                .filter(edge => edge.from.id == nodeId)
+                .sort((e1, e2) => e1.from.output - e2.from.output);
+            const [thenNodeId, _] = outLinks.map(edge => edge.to.id);
+
+
+
+            statement += `) THEN GOTO ?${thenNodeId}`//TODO 
+            statements.push(statement)
+
+            /* const condition = data.control.condition;
             let statement = 'IF (';
 
             // LEFT
@@ -472,16 +554,78 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
 
 
             statement += `) THEN GOTO ?${thenNodeId}`//TODO 
-            statements.push(statement)
+            statements.push(statement) */
+        })
+        .with({ type: NodeDataKind.Condition }, data => {
+            const condition = data.condition;
+            const left = condition.valueSet.left;
+            const right = condition.valueSet.right;
+            const operator = condition.operator;
+
+            console.warn({data, left, right, operator});
+            
+
+            let expression = '';
+            let inout_index = 0;
+
+            if (left == null) {
+                const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == 0);
+                if (link !== undefined) {
+                    const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
+                    const fromNode = processed[fromNodeId]
+                    if (fromNode != null) {
+                        expression += fromNode.expressions[fromOutput]
+                    }
+                }
+                inout_index += 1
+            } else {
+                if (condition.type == DVMType.String) {
+                    expression += `"${left}"`;
+                } else {
+                    expression += left;
+                }
+
+            }
+            
+            expression += ' ' + operator + ' '
+
+            if (right == null) {
+                const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == 1);
+                if (link !== undefined) {
+                    const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
+                    const fromNode = processed[fromNodeId]
+                    if (fromNode != null) {
+                        expression += fromNode.expressions[fromOutput]
+                    }
+                }
+                inout_index += 1
+            } else {
+                if (condition.type == DVMType.String) {
+                    expression += `"${right}"`;
+                } else {
+                    expression += right;
+                }
+
+            }
+
+            expressions[1] = expression
+            console.warn(expressions);
+
         })
         .with({ type: NodeDataKind.Process }, data => {
             const links = edges.filter(edge => edge.from.id == nodeId || edge.to.id == nodeId)
             const isExpressionUsed = edges.filter(edge => edge.from.id == nodeId && edge.type.type == 'value').length > 0;
 
             const inArgs = edges.filter(edge => edge.to.id == nodeId && edge.type.type == 'value')
-            console.warn({ inArgs }); //! // TODO manage args 
-
-            const expression = data.process.name + '(...)';
+            const args = inArgs.map(link => {
+                const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
+                const fromNode = processed[fromNodeId]
+                if (fromNode != null) {
+                    return fromNode.expressions[fromOutput]
+                }
+            })
+            
+            const expression = `${data.process.name}(${args.join(', ')})`;
             if (isExpressionUsed) {
                 expressions[links.length - 1] = expression;
             } else {
