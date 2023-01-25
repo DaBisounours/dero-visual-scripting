@@ -1,5 +1,3 @@
-// TODO Save + Import + Export
-
 import { Project } from "./graph";
 
 function download(filename: string, text: string) {

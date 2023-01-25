@@ -387,7 +387,7 @@ function App() {
     setProjectOptions({ name: storageProject.name });
   }, [])
 
-  const [menuDrawerOpen, setMenuDrawerOpen] = useState(true); // TODO rollback to false
+  const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const [codeDrawerOpen, setCodeDrawerOpen] = useState(true);
 
   const [editFunctionModalOpen, setEditFunctionModalOpen] =
@@ -457,7 +457,7 @@ function App() {
 
                       setMenuDrawerOpen(false);
                     }}>
-                      <div style={{ display: 'flex', }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '1em'}}>
                         <div>{name}</div>
                         <IconButton size='xs' icon={<GearCircleIcon />} onClick={() => {
                           setSelectedFunction(Some(name));
