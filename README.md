@@ -23,6 +23,7 @@ yarn && yarn dev
   - [x] Make an Operation node for +, -, *, /, %, and also boolean &&, ||, ... (check docs)
   - [x] Refactor the control node to make it simpler. Conditions can be made with operation nodes
   - [x] Display Code in an expandable window on the right side
+  -  [ ] Get rid of variable type ?
   - [ ] Export only a subset of functions
   - [ ] Rename function
   - [ ] Change function to process and vice versa
