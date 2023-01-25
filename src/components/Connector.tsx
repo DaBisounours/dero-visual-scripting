@@ -28,12 +28,10 @@ export const NodeConnector = ({ id, inout, size, color, way, type }: NodeConnect
         event.stopPropagation();
 
         function typeEquals(t1: Connector, t2: Connector, incomingWay: 'in' | 'out') {
-            console.warn({t1, t2});
-            
             if (t1.type == t2.type) {
                 if (t1.type == 'value' && t2.type == 'value') {
                     if (t1.valueType == t2.valueType
-                        || t1.valueType == 'Variable' || t2.valueType == 'Variable'
+                        || t1.valueType == 'Variable' || t2.valueType == 'Variable' // TODO remove
                         /* ||(incomingWay == 'out' && t2.valueType == 'Variable')
                         || (incomingWay == 'in' && t1.valueType == 'Variable')*/
                         ) {
@@ -52,7 +50,6 @@ export const NodeConnector = ({ id, inout, size, color, way, type }: NodeConnect
             
             if (incoming.id != id) {
                 if (typeEquals(incoming.type, type, incoming.way)) {
-                    console.warn({incoming, id});
                     if (incoming.way != way) {
                         updateLinks({
                             action: LinksAction.Add,

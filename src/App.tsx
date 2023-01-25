@@ -232,7 +232,7 @@ const ImportProjectModal = ({ open, setOpen }: ImportProjectModalProps) => {
         onClick={() => {
           if (isContentValid) {
             const c: Project = unwrap(unwrap(content));
-            console.log(c);
+            console.log({ c });
             if (partial) {
               const merged: Functions = partialOverwrite ? { ...functions, ...c.functions } : { ...c.functions, ...functions }
               setFunctions(merged)
@@ -303,9 +303,7 @@ function App() {
       }
 
       if (valid) {
-        console.log(
-          setProjectCode(generateProjectCode(functions))
-        );
+        setProjectCode(generateProjectCode(functions))
       }
     }, 300)
     return () => { clearTimeout(timeout); }
@@ -440,10 +438,10 @@ function App() {
               validGraph={validGraph} />
           </div>
           <div style={{ background: colors.whiteAlpha(180), width: codeDrawerOpen ? '600px' : 0, opacity: codeDrawerOpen ? 1 : 0, transition: 'all .4s ease-in-out', height: '100vh', overflow: 'hidden' }}>
-            <div style={{ width: '100%', height: '64px', background: colors.blackAlpha(400), padding: '1em'}}>
-              <IconButton icon={<CloseIcon/>} onClick={_ => setCodeDrawerOpen(false)} style={{ background: 'none', marginRight: '1em'}}/>Project Code
-              </div>
-            <pre style={{padding: '2em'}}><code>
+            <div style={{ width: '100%', height: '64px', background: colors.blackAlpha(400), padding: '1em' }}>
+              <IconButton icon={<CloseIcon />} onClick={_ => setCodeDrawerOpen(false)} style={{ background: 'none', marginRight: '1em' }} />Project Code
+            </div>
+            <pre style={{ padding: '2em' }}><code>
               {projectCode}
             </code></pre>
           </div>

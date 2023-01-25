@@ -207,7 +207,7 @@ type Processed = {
 }
 
 export function generateFunctionCode(name: string, functionData: FunctionData) {
-    console.warn(name, { data: functionData });
+    //console.warn(name, { data: functionData });
 
     // Traverse DAG Depth first
     let order: number[] = [];
@@ -339,15 +339,28 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
             const args = argNames.map((name, index) => {
                 // @ts-ignore //! what else ?
                 const arg = data.function.args[name]
-                const valueSet = arg.valueSet;
                 
-                if (valueSet != null) {
+                const isVariable = arg.type == DVMType.Variable;
+                const valueSet = isVariable ? arg.valueSet.valueSet : arg.valueSet;
+                const valueType = isVariable ? arg.valueSet.type : arg.type;
+
+                /*if (valueSet != null || (arg.type != DVMType.Variable && arg.valueSet.valueSet != null)) {
                     if (arg.type == DVMType.String) {
-                        return `"${valueSet}"` // TODO Handle that better at the node level => Get rid of variable type
+                        return `"${valueSet}"` 
                     } else {
-                        return valueSet;
+                        if (arg.type == DVMType.Variable && arg.valueSet.type == DVMType.String) {
+                            return `"${valueSet.valueSet}"`
+                        } else if (arg.type == DVMType.Variable && arg.valueSet.type == DVMType.Uint64) {
+                            return valueSet.valueSet;
+                        } else {
+                            return valueSet;
+                        }
+                        
                     }
                     
+                }*/
+                if (valueSet != null) {
+                    return valueType == DVMType.String ? `"${valueSet}"` : valueSet;
                 } else {
                     // find expression
                     const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == (asProcess ? index + 2 : index));
@@ -472,8 +485,6 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
             const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == 1);
             if (link !== undefined) {
                 const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
-                console.warn({fromNodeId, fromOutput});
-                
                 const fromNode = processed[fromNodeId]
                 if (fromNode != null) {
                     statement += fromNode.expressions[fromOutput]
@@ -562,9 +573,6 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
             const right = condition.valueSet.right;
             const operator = condition.operator;
 
-            console.warn({data, left, right, operator});
-            
-
             let expression = '';
             let inout_index = 0;
 
@@ -609,8 +617,6 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
             }
 
             expressions[1] = expression
-            console.warn(expressions);
-
         })
         .with({ type: NodeDataKind.Process }, data => {
             const links = edges.filter(edge => edge.from.id == nodeId || edge.to.id == nodeId)

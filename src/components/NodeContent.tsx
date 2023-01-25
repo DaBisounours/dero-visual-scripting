@@ -493,7 +493,7 @@ export const ProcessNode = ({ id, process }: { id: number } & ProcessNodeData) =
     const f = functions[process.name]
     const args = f.args;
     const argList = Object.keys(args);
-    
+
     return <>
         <div style={styles.row}>
             <NodeConnector
@@ -516,13 +516,13 @@ export const ProcessNode = ({ id, process }: { id: number } & ProcessNodeData) =
         {argList.map((argName, index) => {
             const arg = args[argName];
             return <div key={index} style={styles.row}>
-            <NodeConnector
-                id={id}
-                inout={2 + index}
-                size={12}
-                color={arg.type == DVMType.Uint64 ? colors.numericType(500) : arg.type == DVMType.String ? colors.stringType(500) : colors.whiteAlpha(400)}
-                type={{ type: 'value', valueType: arg.type }}
-                way='in' />
+                <NodeConnector
+                    id={id}
+                    inout={2 + index}
+                    size={12}
+                    color={arg.type == DVMType.Uint64 ? colors.numericType(500) : arg.type == DVMType.String ? colors.stringType(500) : colors.whiteAlpha(400)}
+                    type={{ type: 'value', valueType: arg.type }}
+                    way='in' />
                 {argName}
             </div>
         })}
@@ -540,243 +540,6 @@ export const ProcessNode = ({ id, process }: { id: number } & ProcessNodeData) =
     </>
 }
 
-/*
-export const ControlNode = ({ id, control }: { id: number } & ControlNodeData) => {
-    const { nodes, updateNodes } = useGraphAtomReducer();
-    const node = nodes[id];
-    const edit = node.edit;
-
-    const conditionMembers = 2;
-
-    const types: { label: DVMType.String | DVMType.Uint64 | 'Boolean', value: DVMType.String | DVMType.Uint64 | 'Boolean' }[] = [
-        { label: DVMType.String, value: DVMType.String },
-        { label: DVMType.Uint64, value: DVMType.Uint64 },
-        { label: 'Boolean', value: 'Boolean' },
-    ]
-
-    return <>
-        <div style={styles.row}>
-            <NodeConnector
-                id={id}
-                inout={0}
-                size={12}
-                color={colors.whiteAlpha(400)}
-                type={{ type: 'flow' }}
-                way='in' />
-            {control.type}
-        </div>
-        <Separator />
-        {edit ? <>Type: <SelectPicker data={types} defaultValue={control.condition.type} onChange={(value) => {
-
-            if (value != null) {
-                match(value)
-                    .with(DVMType.String, t => {
-
-                        updateNodes({
-                            action: NodesAction.EditNode,
-                            data: {
-                                id,
-                                newData: {
-                                    type: NodeDataKind.Control,
-                                    control: {
-                                        type: 'if',
-                                        condition: {
-                                            type: t,
-                                            operator: StringConditionOperator.Equals,
-                                            valueSet: { left: null, right: null },
-                                        }
-                                    }
-                                }
-                            }
-                        })
-
-                    })
-                    .with(DVMType.Uint64, t => {
-
-                        updateNodes({
-                            action: NodesAction.EditNode,
-                            data: {
-                                id,
-                                newData: {
-                                    type: NodeDataKind.Control,
-                                    control: {
-                                        type: 'if',
-                                        condition: {
-                                            type: t,
-                                            operator: NumericConditionOperator.Equals,
-                                            valueSet: { left: null, right: null },
-                                        }
-                                    }
-                                }
-                            }
-                        })
-
-                    })
-                    .with('Boolean', t => {
-                        updateNodes({
-                            action: NodesAction.EditNode,
-                            data: {
-                                id,
-                                newData: {
-                                    type: NodeDataKind.Control,
-                                    control: {
-                                        type: 'if',
-                                        condition: {
-                                            type: t,
-                                            operator: BooleanConditionOperator.IsTrue,
-                                            valueSet: { left: null, right: null },
-                                        }
-                                    }
-                                }
-                            }
-                        })
-
-                    })
-                    .exhaustive();
-
-            }
-
-        }} /></> : null}
-        {
-            [...Array((control.condition.type == "Boolean" ? 2 : 3)).keys()].reverse().map(index => {
-                if (index % 2 == 0) {
-                    const side = index == 0 ? 'left' : 'right';
-                    if (edit) {
-                        return <div key={index} style={{ ...styles.row, gap: 0 }}>
-                            <Checkbox checked={control.condition.valueSet[side] != null} onChange={(_, checked) => {
-                                updateNodes({
-                                    action: NodesAction.EditNodeArgValue,
-                                    data: {
-                                        id,
-                                        arg: side,
-                                        valueSet: checked ? control.condition.type == 'Uint64' ? 0 : 'value' : null,
-                                    }
-                                })
-                            }} />
-                            <Input
-                                disabled={control.condition.valueSet[side] == null}
-                                placeholder={side}
-                                type={control.condition.type == 'Uint64' ? 'number' : 'text'}
-                                value={control.condition.valueSet[side] || ''}
-                                style={{ outline: control.condition.valueSet[side] == '' ? '2px solid red' : 'none' }}
-                                onChange={(value) => {
-                                    if (control.condition.valueSet[side] != null) {
-                                        updateNodes({
-                                            action: NodesAction.EditNodeArgValue,
-                                            data: {
-                                                id,
-                                                arg: side,
-                                                valueSet: value,
-                                            }
-                                        })
-                                    }
-                                }}
-                            />
-                        </div>
-                    } else {
-
-                        return <div key={index} style={styles.row}>
-                            {control.condition.valueSet[side] == null ?
-                                <><NodeConnector
-                                    id={id}
-                                    inout={1 + index}
-                                    size={12}
-                                    color={control.condition.type == 'String' ? colors.stringType(500) : colors.numericType(500)}
-                                    type={{ type: 'value', valueType: control.condition.type == 'Boolean' ? DVMType.Uint64 : control.condition.type }}
-                                    way='in' />
-                                    value
-                                </>
-                                : <><div /> {control.condition.valueSet[side]}</>
-                            }
-                        </div>
-
-                    }
-
-
-                } else {
-                    if (edit) {
-                        return <SelectPicker data={match(control.condition.type)
-                            .with(DVMType.String, _ => {
-                                const operators: { [opName in StringConditionOperator]: null } = {
-                                    [StringConditionOperator.Equals]: null,
-                                    [StringConditionOperator.Different]: null
-                                }
-                                return Object.keys(operators).map((operator) => ({ label: operator, value: operator }))
-                            })
-                            .with(DVMType.Uint64, _ => {
-                                const operators: { [opName in NumericConditionOperator]: null } = {
-                                    [NumericConditionOperator.Equals]: null,
-                                    [NumericConditionOperator.Greater]: null,
-                                    [NumericConditionOperator.GreaterOrEquals]: null,
-                                    [NumericConditionOperator.Lower]: null,
-                                    [NumericConditionOperator.LowerOrEquals]: null
-                                }
-                                return Object.keys(operators).map((operator) => ({ label: operator, value: operator }))
-                            })
-                            .with('Boolean', _ => {
-                                const operators: { [opName in BooleanConditionOperator]: null } = {
-                                    [BooleanConditionOperator.IsTrue]: null,
-                                    [BooleanConditionOperator.IsNotTrue]: null
-                                }
-                                return Object.keys(operators).map((operator) => ({ label: operator, value: operator }))
-                            })
-                            .exhaustive()} defaultValue={control.condition.operator} onChange={(value) => {
-                                if (value != null) {
-
-                                    updateNodes({
-                                        action: NodesAction.EditNode,
-                                        data: {
-                                            id,
-                                            newData: {
-                                                type: NodeDataKind.Control,
-                                                control: {
-                                                    type: 'if',
-                                                    condition: {
-                                                        ...control.condition,
-                                                        // @ts-ignore
-                                                        operator: value,
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    })
-
-
-                                }
-                            }}
-                            style={{ width: '100%' }} />
-                    } else {
-
-                        return <div key={index} style={styles.row}><div></div>{control.condition.operator}</div>
-                    }
-
-
-                }
-            }
-
-            ).reverse()
-        }
-        <Separator />
-        {
-            ['then', 'else'].map((outName, index) =>
-                <div key={outName} style={styles.row}>
-                    {outName}
-                    <NodeConnector
-                        id={id}
-                        inout={1 + conditionMembers + index}
-                        size={12}
-                        color={colors.whiteAlpha(400)}
-                        type={{ type: 'flow' }}
-                        way='out' />
-                </div>
-            )
-
-        }
-
-    </>
-
-
-}*/
 export const ControlNode = ({ id, control }: { id: number } & ControlNodeData) => {
     const { nodes, updateNodes } = useGraphAtomReducer();
     const node = nodes[id];
@@ -831,6 +594,7 @@ export const FunctionNode = ({ id, function: _function }: { id: number } & Funct
     const args = _function.args;
     const arg_names: string[] = Object.keys(args);
     const asProcess = 'asProcess' in _function && _function.asProcess;
+    const types = [{ label: DVMType.String, value: DVMType.String }, { label: `${DVMType.Uint64} / Boolean`, value: DVMType.Uint64 }]
 
     return <>
         {asProcess
@@ -862,17 +626,19 @@ export const FunctionNode = ({ id, function: _function }: { id: number } & Funct
                     // @ts-ignore
                     const arg = args[arg_key];
 
-                    const valueType = arg.type;
+                    // check set type for variable
+                    const valueType = arg.type == DVMType.Variable ? arg.valueSet.type : arg.type;
+                    const valueSet = arg.type == DVMType.Variable ? arg.valueSet.valueSet : arg.valueSet;
 
                     return <div key={index} style={styles.row}>
-                        {arg.valueSet == null ?
+                        {valueSet == null ?
                             <NodeConnector
                                 id={id}
                                 inout={asProcess ? 2 + index : index}
                                 size={12}
-                                color={valueType == 'String' ? colors.stringType(500) : valueType == 'Uint64' ? colors.numericType(500) : colors.whiteAlpha(500)}
+                                color={valueType == DVMType.String ? colors.stringType(500) : valueType == DVMType.Uint64 ? colors.numericType(500) : colors.whiteAlpha(500)}
                                 type={{ type: 'value', valueType: valueType }}
-                                way='in' /> : <div>{arg.valueSet}</div>}
+                                way='in' /> : <div>{valueSet}</div>}
                         {arg_key}
                     </div>
 
@@ -883,38 +649,77 @@ export const FunctionNode = ({ id, function: _function }: { id: number } & Funct
                 // @ts-ignore
                 const arg = args[arg_key];
 
-                const valueType = arg.type;
+                const isVariable = arg.type == DVMType.Variable;
+                const valueType = isVariable ? arg.valueSet.type : arg.type;
+
+
 
                 return <div key={index} style={{ ...styles.row, gap: 0 }}>
-                    <Checkbox checked={arg.valueSet != null} onChange={(_, checked) => {
+                    <Checkbox checked={(isVariable ? arg.valueSet.valueSet : arg.valueSet) != null} onChange={(_, checked) => {
+                        const newValue = valueType == DVMType.Uint64 ? 0 : 'value';
+                        const newValueSet = isVariable ? { type: valueType, valueSet: checked ? newValue : null } : checked ? newValue : null;
                         updateNodes({
                             action: NodesAction.EditNodeArgValue,
                             data: {
                                 id,
                                 arg: arg_key,
-                                valueSet: checked ? 'value' : null,
+                                valueSet: newValueSet,
                             }
                         })
                     }} />
-                    <Input
-                        disabled={arg.valueSet == null}
-                        placeholder={arg_key}
-                        type={valueType == 'Uint64' ? 'number' : 'text'}
-                        value={arg.valueSet == null ? '' : arg.valueSet}
-                        style={{ outline: arg.valueSet == '' ? '2px solid red' : 'none' }}
-                        onChange={(value) => {
-                            if (arg.valueSet != null) {
-                                updateNodes({
-                                    action: NodesAction.EditNodeArgValue,
-                                    data: {
-                                        id,
-                                        arg: arg_key,
-                                        valueSet: value,
+                    <div>
+                        <Input
+                            disabled={(isVariable ? arg.valueSet.valueSet : arg.valueSet) == null}
+                            placeholder={arg_key}
+                            type={valueType == DVMType.Uint64 ? 'number' : 'text'}
+                            value={isVariable ? (arg.valueSet.valueSet == null ? '' : arg.valueSet.valueSet) : arg.valueSet == null ? '' : arg.valueSet}
+                            onChange={(value) => {
+                                if ((isVariable ? arg.valueSet.valueSet : arg.valueSet) != null) {
+                                    const newValueSet = isVariable ? { type: valueType, valueSet: value } : value
+                                    updateNodes({
+                                        action: NodesAction.EditNodeArgValue,
+                                        data: {
+                                            id,
+                                            arg: arg_key,
+                                            valueSet: newValueSet,
+                                        }
+                                    })
+                                }
+                            }}
+                        />
+                        {isVariable
+                            ? <SelectPicker data={types} defaultValue={valueType} style={{ width: '100%' }}
+                                onChange={(t) => {
+                                    if (t != null) {
+                                        updateNodes({
+                                            action: NodesAction.EditNode,
+                                            data: {
+                                                id,
+                                                newData: {
+                                                    type: NodeDataKind.Function,
+                                                    // @ts-ignore
+                                                    function: {
+                                                        ..._function,
+                                                        args: {
+                                                            ..._function.args,
+                                                            [arg_key]: {
+                                                                type: DVMType.Variable,
+                                                                valueSet: {
+                                                                    type: t,
+                                                                    valueSet: null
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                }
+                                            }
+                                        })
                                     }
-                                })
-                            }
-                        }}
-                    />
+                                }}
+                            />
+                            : null}
+                    </div>
                 </div>
             })
         }
@@ -936,8 +741,6 @@ export const FunctionNode = ({ id, function: _function }: { id: number } & Funct
 
     </>
 }
-
-
 
 export const OperationNode = ({ id, operation }: { id: number } & OperationNodeData) => {
     const { nodes, updateNodes } = useGraphAtomReducer();
@@ -1068,8 +871,6 @@ export const OperationNode = ({ id, operation }: { id: number } & OperationNodeD
             <div style={{ ...styles.row, width: '100%' }}>
                 <SelectPicker data={operators} defaultValue={operation.operator} style={{ width: '100%' }}
                     onChange={(value) => {
-                        console.warn(value);
-
                         if (value != null) {
                             if (isUint64Operator(value) && operation.type == DVMType.Uint64) {
 
@@ -1142,8 +943,6 @@ export const OperationNode = ({ id, operation }: { id: number } & OperationNodeD
         </div>
     </>
 }
-
-
 
 export const ConditionNode = ({ id, condition }: { id: number } & ConditionNodeData) => {
     const { nodes, updateNodes } = useGraphAtomReducer();
@@ -1270,8 +1069,6 @@ export const ConditionNode = ({ id, condition }: { id: number } & ConditionNodeD
             <div style={{ ...styles.row, width: '100%' }}>
                 <SelectPicker data={operators} defaultValue={condition.operator} style={{ width: '100%' }}
                     onChange={(value) => {
-                        console.warn(value);
-
                         if (value != null) {
                             if (isUint64Comparator(value) && condition.type == DVMType.Uint64) {
 
@@ -1345,9 +1142,6 @@ export const ConditionNode = ({ id, condition }: { id: number } & ConditionNodeD
     </>
 }
 
-
-
-
 export const LetNode = ({ id, let: _let }: { id: number } & LetNodeData) => {
     const { nodes, updateNodes } = useGraphAtomReducer();
     const node = nodes[id];
@@ -1357,7 +1151,7 @@ export const LetNode = ({ id, let: _let }: { id: number } & LetNodeData) => {
     const [functions, setFunctions] = useAtom(functionsAtom);
     const [selectedFunction] = useAtom(selectedFunctionAtom);
     const vars = functions[unwrap(selectedFunction)].vars;
-    const declaredVariables: { label: string, value: string, type: DVMType }[] = Object.entries(vars).map(([k, v]) => ({ label: k, value: k, type: v.type })); // TODO add declared variables
+    const declaredVariables: { label: string, value: string, type: DVMType }[] = Object.entries(vars).map(([k, v]) => ({ label: k, value: k, type: v.type }));
 
     return <>
         <div style={styles.row}>
@@ -1494,223 +1288,3 @@ export const VariableNode = ({ id, variable }: { id: number } & VariableNodeData
         </div>
     </>
 }
-
-/*
-export const DimNode = ({ id, dim }: { id: number } & DimNodeData) => {
-    const { nodes, updateNodes, links } = useGraphAtomReducer();
-    const node = nodes[id];
-    const edit = node.edit;
-    const nodeWidth = 128;
-    const returnTypes: { label: DVMType, value: DVMType }[] = [
-        { label: DVMType.String, value: DVMType.String },
-        { label: DVMType.Uint64, value: DVMType.Uint64 },
-    ]
-    return <>
-        {edit ? <>
-            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
-                <Input
-                    placeholder={'Variable Name'}
-                    type={'text'}
-                    value={dim.name || ''}
-                    style={{ outline: dim.name == '' ? '2px solid red' : 'none' }}
-                    onChange={(value) => {
-                        if (dim.name != null && value != '') {
-                            updateNodes({
-                                action: NodesAction.EditNode,
-                                data: {
-                                    id,
-                                    newData: {
-                                        type: NodeDataKind.Dim,
-                                        dim: {
-                                            ...dim,
-                                            name: value
-                                        }
-
-                                    }
-                                }
-                            })
-                        }
-                    }}
-                />
-            </div>
-            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
-                <SelectPicker data={returnTypes} defaultValue={dim.type} style={{ width: '100%' }}
-                    onChange={(value) => {
-                        if (value != null) {
-                            updateNodes({
-                                action: NodesAction.EditNode,
-                                data: {
-                                    id,
-                                    newData: {
-                                        type: NodeDataKind.Dim,
-                                        dim: {
-                                            ...dim,
-                                            type: value,
-                                        }
-
-                                    }
-                                }
-                            })
-                        }
-                    }} />
-            </div>
-
-        </> :
-            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}> {dim.name} </div>
-        }
-
-    </>
-}
-*/
-
-// TODO create DIM / LET and VARIABLE nodes
-/*export const DimLetNode = ({ id, dimlet }: { id: number } & DimLetNodeData) => {
-    const { nodes, updateNodes, links } = useGraphAtomReducer();
-    const node = nodes[id];
-    const edit = node.edit;
-    const nodeWidth = 128;
-    const valueType = dimlet.return.type;
-    const arg = dimlet.args.in;
-    // TODO EDIT MODE Type
-    const outputs = links.filter(link => link.from.id == id || link.to.id == id);
-    const returnTypes: { label: DVMType, value: DVMType }[] = [
-        { label: DVMType.String, value: DVMType.String },
-        { label: DVMType.Uint64, value: DVMType.Uint64 },
-    ]
-
-    return <>
-
-        {edit ? <>
-            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
-                <SelectPicker data={returnTypes} defaultValue={dimlet.return.type} style={{ width: '100%' }}
-                    onChange={(value) => {
-                        match(value)
-                            .with(DVMType.String, returnType => {
-                                updateNodes({
-                                    action: NodesAction.EditNode,
-                                    data: {
-                                        id,
-                                        newData: {
-                                            type: NodeDataKind.DimLet,
-                                            dimlet: {
-                                                args: { in: { valueSet: null, type: returnType } },
-                                                return: { valueSet: null, type: returnType },
-                                                name: dimlet.name
-                                            }
-
-                                        }
-                                    }
-                                })
-                            })
-                            .with(DVMType.Uint64, returnType => {
-                                updateNodes({
-                                    action: NodesAction.EditNode,
-                                    data: {
-                                        id,
-                                        newData: {
-                                            type: NodeDataKind.DimLet,
-                                            dimlet: {
-                                                args: { in: { valueSet: null, type: returnType } },
-                                                return: { valueSet: null, type: returnType },
-                                                name: dimlet.name
-                                            }
-                                        }
-                                    }
-                                })
-                            })
-                            .otherwise(_ => { })
-                    }} />
-            </div>
-            <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}>
-                <Input
-                    placeholder={'Variable Name'}
-                    type={'text'}
-                    value={dimlet.name || ''}
-                    style={{ outline: dimlet.name == '' ? '2px solid red' : 'none' }}
-                    onChange={(value) => {
-                        if (dimlet.name != null) {
-                            updateNodes({
-                                action: NodesAction.EditNode,
-                                data: {
-                                    id,
-                                    newData: {
-                                        type: NodeDataKind.DimLet,
-                                        dimlet: {
-                                            ...dimlet,
-                                            name: value
-                                        }
-
-                                    }
-                                }
-                            })
-                        }
-                    }}
-                />
-            </div>
-        </> : <div style={{ ...styles.row, minWidth: `${nodeWidth}px`, }}> {dimlet.name} </div>}
-
-        <Separator />
-        {!edit
-            ? <div style={styles.row}>
-                {arg.valueSet == null ?
-                    <NodeConnector
-                        id={id}
-                        inout={0}
-                        size={12}
-                        color={valueType == DVMType.String ? colors.stringType(500) : valueType == DVMType.Uint64 ? colors.numericType(500) : colors.whiteAlpha(500)}
-                        type={{ type: 'value', valueType: valueType }}
-                        way='in' /> : <div>{arg.valueSet}</div>}
-                value
-            </div>
-
-            : <div style={{ ...styles.row, gap: 0 }}>
-                <Checkbox checked={arg.valueSet != null} onChange={(_, checked) => {
-                    updateNodes({
-                        action: NodesAction.EditNodeArgValue,
-                        data: {
-                            id,
-                            arg: 'in',
-                            valueSet: checked ? 'value' : null,
-                        }
-                    })
-                }} />
-                <Input
-                    disabled={arg.valueSet == null}
-                    placeholder={'in'}
-                    type={valueType == DVMType.Uint64 ? 'number' : 'text'}
-                    value={arg.valueSet == null ? '' : arg.valueSet}
-                    style={{ outline: arg.valueSet == '' ? '2px solid red' : 'none' }}
-                    onChange={(value) => {
-                        if (arg.valueSet != null) {
-                            updateNodes({
-                                action: NodesAction.EditNodeArgValue,
-                                data: {
-                                    id,
-                                    arg: 'in',
-                                    valueSet: value,
-                                }
-                            })
-                        }
-                    }}
-                />
-            </div>
-
-        }
-        <Separator />
-        {
-            outputs.map((_, index) => <div key={index} style={styles.row}>
-                output
-                <NodeConnector
-                    id={id}
-                    inout={1 + index}
-                    size={12}
-                    color={valueType == DVMType.String ? colors.stringType(500) : valueType == DVMType.Uint64 ? colors.numericType(500) : colors.whiteAlpha(400)}
-                    type={{ type: 'value', valueType: dimlet.return.type }}
-                    way='out' />
-            </div>)
-
-
-        }
-
-    </>
-}*/

@@ -277,7 +277,6 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
                     const vars = functions[unwrap(selectedFunction)].vars
                     const _var = Object.keys(vars)[0];
                     const type = vars[_var].type
-                    console.warn(_var);
                     
                     if (type != DVMType.Variable) {
                         const n: Node = {
@@ -396,8 +395,6 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
                 .when(v => 'dvm' in JSON.parse(v || 'null'), v => {
                     const f: { dvm: DVM } = JSON.parse(v || 'null');
                     if (f) {
-                        console.warn(f);
-
                         const name = f.dvm;
                         if (name in DVM) {
                             const n: Node = {

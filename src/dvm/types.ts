@@ -1,7 +1,7 @@
 import { Dim, Let } from "../graph/nodes";
 
 export type Variable = string | Uint64 | null;
-export type VariableType = { type: "Variable", valueSet: Variable }
+export type VariableType = { type: "Variable", valueSet: StringType | Uint64Type }
 export type StringType = { type: DVMType.String, valueSet: string | null }
 export type Uint64 = number | null;
 export type Uint64Type = { type: DVMType.Uint64, valueSet: Uint64 }
@@ -329,51 +329,51 @@ export const defaultDVMFunctionMap: { [d in DVM]: DVMFunction } = {
     [DVM.LOAD]: {
         name: DVM.LOAD,
         args: {
-            variable: {type: DVMType.Variable, valueSet: null}
+            variable: {type: DVMType.Variable, valueSet: {type: DVMType.String, valueSet: null}}
         }, return: DVMType.Variable
     },
     [DVM.EXISTS]: {
         name: DVM.EXISTS,
         args: {
-            variable: {type: DVMType.Variable, valueSet: null}
+            variable: {type: DVMType.Variable, valueSet: {type: DVMType.String, valueSet: null}}
         }, return: DVMType.Uint64
     },
     [DVM.STORE]: {
         name: DVM.STORE,
         args: {
-            key: {type: DVMType.Variable, valueSet: null},
-            value:  {type: DVMType.Variable, valueSet: null},
+            key: {type: DVMType.Variable, valueSet: {type: DVMType.String, valueSet: null}},
+            value:  {type: DVMType.Variable, valueSet: {type: DVMType.String, valueSet: null}},
         }, return: DVMType.Uint64, asProcess: true
     },
     [DVM.DELETE]: {
         name: DVM.DELETE,
         args: {
-            variable: {type: DVMType.Variable, valueSet: null}
+            variable: {type: DVMType.Variable, valueSet: {type: DVMType.String, valueSet: null}}
         }, return: DVMType.Uint64, asProcess: true
     },
     [DVM.MAPEXISTS]: {
         name: DVM.MAPEXISTS,
         args: {
-            variable: {type: DVMType.Variable, valueSet: null}
+            variable: {type: DVMType.Variable, valueSet: {type: DVMType.String, valueSet: null}}
         }, return: DVMType.Uint64
     },
     [DVM.MAPGET]: {
         name: DVM.MAPGET,
         args: {
-            variable: {type: DVMType.Variable, valueSet: null}
+            variable: {type: DVMType.Variable, valueSet: {type: DVMType.String, valueSet: null}}
         }, return: DVMType.Uint64
     },
     [DVM.MAPSTORE]: {
         name: DVM.MAPSTORE,
         args: {
             key: {type: DVMType.String, valueSet: null},
-            value:  {type: DVMType.Variable, valueSet: null},
+            value:  {type: DVMType.Variable, valueSet: {type: DVMType.String, valueSet: null}},
         }, return: DVMType.Uint64, asProcess: true
     },
     [DVM.MAPDELETE]: {
         name: DVM.MAPDELETE,
         args: {
-            variable: {type: DVMType.Variable, valueSet: null}
+            variable: {type: DVMType.Variable, valueSet: {type: DVMType.String, valueSet: null}}
         }, return: DVMType.Uint64, asProcess: true
     },
     [DVM.RANDOM]: {
