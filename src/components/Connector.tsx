@@ -6,7 +6,6 @@ import { useGraphAtomReducer } from "../graph/graph";
 import { LinksAction } from "../graph/links";
 import { Connector, Position, NodeLink } from "../graph/nodes";
 import { Option, None, Some, unwrap, hasSome } from "../utils/variants";
-
 import { nodesConnectorPositionAtom, nodesConnectorPositionReducer } from "./NodeContent";
 
 

@@ -476,9 +476,13 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
                 onMouseDown={onCanvasMouseDown}
                 onMouseUp={onMouseUp}
                 onMouseMove={onMouseMove}
-                onDoubleClick={e => setContextMenuOpen(Some({ x: e.clientX, y: e.clientY }))}
+                onDoubleClick={e => {
+                    if (!hasSome(selectedElement)) {
+                        setContextMenuOpen(Some({ x: e.clientX, y: e.clientY }))}
+                    }
+                    
+                }
             >
-
 
                 <div
                     className="nodes"
@@ -531,22 +535,33 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
                                                 && selectedElement.value.type == 'link'
                                                 && linkEquals({ from, to, type }, selectedElement.value.link) ? 800 : 500;
                                             const color = type.type == 'flow' || (type.type == 'value' && type.valueType == 'Variable') ? colors.whiteAlpha(colorStrength) : type.valueType == 'String' ? colors.stringType(colorStrength) : colors.numericType(colorStrength)
-
-                                            return <line
+                                            
+                                            const middlePoint = {
+                                                x: (positionTo.x - positionFrom.x) / 2,
+                                                y: (positionTo.y - positionFrom.y) / 2,
+                                            }
+                                            const path = [
+                                                `M ${positionFrom.x} ${positionFrom.y}`,
+                                                `q ${middlePoint.x/2} 0 ${middlePoint.x} ${middlePoint.y}`,
+                                                `q ${middlePoint.x/2} ${middlePoint.y} ${middlePoint.x} ${middlePoint.y}`,
+                                            ].join(' ');
+                                            
+                                            
+                                            
+                                            return <path
                                                 key={key}
-                                                x1={positionFrom.x}
-                                                y1={positionFrom.y}
-                                                x2={positionTo.x}
-                                                y2={positionTo.y}
+                                                d={path}
                                                 stroke={color}
                                                 strokeWidth={6}
+                                                fill='none'
                                                 strokeLinecap="round"
                                                 onClick={(event) => {
                                                     event.stopPropagation();
                                                     setSelectedElement(Some({ type: 'link', link: { from, to, type } }))
                                                 }}
-
                                             />
+
+                                            
                                         }
                                     })
                             }

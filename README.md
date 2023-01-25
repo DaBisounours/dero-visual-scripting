@@ -29,7 +29,7 @@ yarn && yarn dev
   - [ ] Change function to process and vice versa
   - [ ] Remove function or process
   - [ ] [OPTIONAL] Graph schema Versionning and retrocompatibility
-  - [ ] [OPTIONAL] Make links splines instead of straight lines
+  - [x] [OPTIONAL] Make links splines instead of straight lines
 - Code generation
   - [ ] Parenthesis on expressions?
 - Docs
