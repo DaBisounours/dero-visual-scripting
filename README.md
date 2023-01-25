@@ -25,9 +25,9 @@ yarn && yarn dev
   - [x] Display Code in an expandable window on the right side
   - [x] Manage variable type
   - [ ] Export only a subset of functions
-  - [ ] Rename function
+  - [x] Rename function
   - [ ] Change function to process and vice versa
-  - [ ] Remove function or process
+  - [x] Remove function or process
   - [ ] [OPTIONAL] Graph schema Versionning and retrocompatibility
   - [x] [OPTIONAL] Make links splines instead of straight lines
 - Code generation

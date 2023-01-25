@@ -6,17 +6,19 @@ import { Canvas } from './components/Canvas'
 
 import { colors } from './utils/theme'
 import { hasSome, None, Ok, Option, Result, Some, Error, unwrap, isOk } from './utils/variants';
-import GearCircleIcon from '@rsuite/icons/legacy/GearCircle';
-import MagicIcon from '@rsuite/icons/legacy/Magic';
-import BranchIcon from '@rsuite/icons/Branch';
+
 import { Functions, functionsAtom, generateProjectCode, initialFunctions, Links, Nodes, Project, projectOptionsAtom, storageProjectAtom, validateFunctions } from './graph/graph';
 import { Node } from './graph/nodes';
 
+import GearCircleIcon from '@rsuite/icons/legacy/GearCircle';
+import MagicIcon from '@rsuite/icons/legacy/Magic';
+import BranchIcon from '@rsuite/icons/Branch';
 import FileDownloadIcon from '@rsuite/icons/FileDownload';
 import FileUploadIcon from '@rsuite/icons/FileUpload';
 import CombinationIcon from '@rsuite/icons/Combination';
 import TrashIcon from '@rsuite/icons/Trash';
 import CloseIcon from '@rsuite/icons/Close';
+import CheckIcon from '@rsuite/icons/Check';
 
 import { exportProject } from './graph/import-export';
 
@@ -70,7 +72,7 @@ export type FunctionsActionType =
 export const selectedFunctionAtom = atom<Option<string>>(Some('Initialize'))
 
 
-type EditFunctionModalOpenMode = { mode: 'create' | 'edit', isProcess: boolean };
+type EditFunctionModalOpenMode = { mode: 'create', isProcess: boolean } | { mode: 'edit' };
 
 type EditFunctionModalProps = {
   mode: EditFunctionModalOpenMode,
@@ -80,23 +82,88 @@ type EditFunctionModalProps = {
 
 const EditCurrentFunctionModal = ({ mode, open, setOpen }: EditFunctionModalProps) => {
   const [functions, setFunctions] = useAtom(functionsAtom);
+  const [selectedFunction, setSelectedFunction] = useAtom(selectedFunctionAtom);
+
   const [name, setName] = useState('');
+  useEffect(() => {
+    if (mode.mode == 'edit') {
+      setName(unwrap(selectedFunction))
+    } else {
+      setName('')
+    }
+  }, [selectedFunction])
   const isNameValid = name != '';
+
   const close = () => {
     setName('');
+    setRemoving(false);
     setOpen(false)
   }
 
-  const [selectedFunction] = useAtom(selectedFunctionAtom);
+  function renameFunction(from: string, to: string) {
+    setFunctions((draft) => {
+      const old = { ...draft[from] };
+      delete draft[from];
+      console.warn(old);
+
+      draft[to] = old;
+      setSelectedFunction(Some(to));
+    })
+  }
+
+  function removeFunction() {
+    const fname = unwrap(selectedFunction);
+    setFunctions((draft) => {
+      delete draft[fname];
+      if ('Initialize' in functions) {
+        setSelectedFunction(Some('Initialize'));
+      } else {
+        setSelectedFunction(Some('InitializePrivate'));
+      }
+      close();
+    })
+  }
+
+  const isInit = mode.mode == 'edit' && (unwrap(selectedFunction) == 'Initialize' || unwrap(selectedFunction) == 'InitializePrivate');
+
+  const isProcess = match(mode)
+    .with({ mode: 'create' }, m => m.isProcess)
+    .with({ mode: 'edit' }, _ => hasSome(selectedFunction) ? functions[unwrap(selectedFunction)].isProcess : false)
+    .exhaustive()
+
+  const [removing, setRemoving] = useState(false);
 
   return <Modal size={'xs'} open={open} onClose={close}>
     <Modal.Header>
-      <Modal.Title>{mode.mode.slice(0, 1).toUpperCase() + mode.mode.slice(1)} {mode.isProcess ? 'process' : 'function'}</Modal.Title>
+      <Modal.Title>{mode.mode.slice(0, 1).toUpperCase() + mode.mode.slice(1)} {isProcess ? 'process' : 'function'} {mode.mode == 'edit' ? unwrap(selectedFunction) : null}</Modal.Title>
     </Modal.Header>
     <Modal.Body>
       <InputGroup>
-        <Input placeholder="Name" value={name} onChange={(value) => setName((mode.isProcess ? value.slice(0, 1).toLowerCase() : value.slice(0, 1).toUpperCase()) + value.slice(1))} />
+        <Input placeholder="Name" disabled={isInit} value={name} onChange={(value) => setName((isProcess ? value.slice(0, 1).toLowerCase() : value.slice(0, 1).toUpperCase()) + value.slice(1))} />
       </InputGroup>
+      {mode.mode == 'edit' ? <>
+        {isInit ? <div> <Checkbox checked={name == 'InitializePrivate'} onChange={(_, checked) => {
+          console.warn('PLOP');
+
+          setName(checked ? 'InitializePrivate' : 'Initialize');
+        }}>Private</Checkbox></div>
+          : <>
+            <Button
+              style={{ background: 'red', margin: '1em' }}
+              onClick={() => setRemoving(true)}
+            >
+              <TrashIcon /> Remove {unwrap(selectedFunction)}
+            </Button>
+            {removing
+              ? <> sure ?
+                <IconButton style={{ background: 'transparent' }} onClick={removeFunction} icon={<CheckIcon />} />
+                <IconButton style={{ background: 'transparent' }} onClick={_ => setRemoving(false)} icon={<CloseIcon />} />
+              </>
+              : null}
+          </>}
+      </> : null}
+
+
     </Modal.Body>
     <Modal.Footer>
       <Button onClick={close} appearance="subtle">
@@ -107,23 +174,19 @@ const EditCurrentFunctionModal = ({ mode, open, setOpen }: EditFunctionModalProp
           match(mode)
             .with({ mode: 'create' }, () => {
               setFunctions((draft) => {
-                draft[name] = { ...initialFunctions['Initialize'], isProcess: mode.isProcess }
+                draft[name] = { ...initialFunctions['Initialize'], isProcess: isProcess }
               })
+              setSelectedFunction(Some(name));
             })
             .with({ mode: 'edit' }, () => {
               if (hasSome(selectedFunction)) {
-                setFunctions((draft) => {
-                  const oldKey = unwrap(selectedFunction)
-                  const old = { ...draft[oldKey] };
-                  delete draft[oldKey];
-                  draft[name] = old;
-                })
+                renameFunction(unwrap(selectedFunction), name);
               }
             })
             .exhaustive()
           close();
         }
-      }} appearance="primary" disabled={!isNameValid || (name in functions)}>
+      }} appearance="primary" disabled={!isNameValid || Object.keys(functions).map(f => f.toLowerCase()).includes(name.toLowerCase())}>
         Ok
       </Button>
     </Modal.Footer>
@@ -324,7 +387,7 @@ function App() {
     setProjectOptions({ name: storageProject.name });
   }, [])
 
-  const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
+  const [menuDrawerOpen, setMenuDrawerOpen] = useState(true); // TODO rollback to false
   const [codeDrawerOpen, setCodeDrawerOpen] = useState(true);
 
   const [editFunctionModalOpen, setEditFunctionModalOpen] =
@@ -391,8 +454,19 @@ function App() {
                   {Object.keys(functions).filter(name => !functions[name].isProcess).map((name) =>
                     <Nav.Item key={name} eventKey={"3-" + name} onClick={(event) => {
                       setSelectedFunction(Some(name));
+
                       setMenuDrawerOpen(false);
-                    }}>{name}</Nav.Item>
+                    }}>
+                      <div style={{ display: 'flex', }}>
+                        <div>{name}</div>
+                        <IconButton size='xs' icon={<GearCircleIcon />} onClick={() => {
+                          setSelectedFunction(Some(name));
+                          setEditFunctionModalMode({ mode: 'edit' });
+                          setEditFunctionModalOpen(true);
+
+                        }} />
+                      </div>
+                    </Nav.Item>
                   )}
                   <Nav.Item eventKey={"3--new"} onClick={(event) => {
                     setEditFunctionModalMode({ mode: 'create', isProcess: false });

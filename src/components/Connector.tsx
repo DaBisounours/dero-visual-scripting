@@ -31,10 +31,7 @@ export const NodeConnector = ({ id, inout, size, color, way, type }: NodeConnect
             if (t1.type == t2.type) {
                 if (t1.type == 'value' && t2.type == 'value') {
                     if (t1.valueType == t2.valueType
-                        || t1.valueType == 'Variable' || t2.valueType == 'Variable' // TODO remove
-                        /* ||(incomingWay == 'out' && t2.valueType == 'Variable')
-                        || (incomingWay == 'in' && t1.valueType == 'Variable')*/
-                        ) {
+                        || t1.valueType == 'Variable' || t2.valueType == 'Variable') {
                         return true;
                     }
                 } else {
@@ -46,8 +43,8 @@ export const NodeConnector = ({ id, inout, size, color, way, type }: NodeConnect
 
         if (hasSome(connectorLinking)) {
             const incoming = unwrap(connectorLinking);
-            
-            
+
+
             if (incoming.id != id) {
                 if (typeEquals(incoming.type, type, incoming.way)) {
                     if (incoming.way != way) {
@@ -56,15 +53,15 @@ export const NodeConnector = ({ id, inout, size, color, way, type }: NodeConnect
                             data: match(incoming.way).with('out', (_): NodeLink => ({
                                 from: {
                                     id: incoming.id, output: incoming.inout,
-                                }, 
+                                },
                                 to: {
                                     id, input: inout
-                                }, 
+                                },
                                 type
                             })).with('in', (_): NodeLink => ({
                                 from: {
                                     id, output: inout
-                                }, 
+                                },
                                 to: {
                                     id: incoming.id, input: incoming.inout,
                                 },

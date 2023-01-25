@@ -1,7 +1,7 @@
 import { atomWithImmer } from 'jotai-immer'
 import { useAtom } from "jotai"
 import { selectedFunctionAtom } from "../App"
-import { hasSome, unwrap } from "../utils/variants"
+import { hasSome, Some, unwrap } from "../utils/variants"
 import { LinksReduce, linksImmerReducer } from "./links"
 import { Node, NodeLink, NodeDataKind, NodesReduce, nodesImmerReducer, StringOperator, Uint64Operator, Uint64Comparator } from "./nodes"
 import { DVM, DVMType } from '../dvm/types'
@@ -89,7 +89,11 @@ export const functionsAtom = atomWithImmer<Functions>(initialFunctions);
 
 export const useGraphAtomReducer = () => {
     const [functions, setFunctions] = useAtom(functionsAtom);
-    const [selectedFunction] = useAtom(selectedFunctionAtom);
+    let [selectedFunction, setSelectedFunction] = useAtom(selectedFunctionAtom);
+    if (selectedFunction.type == 'None' || selectedFunction.type == 'Some' && !(unwrap(selectedFunction) in functions)) {
+        selectedFunction = Some(Object.keys(functions)[0]);
+        setSelectedFunction(selectedFunction);
+    }
 
     if (hasSome(selectedFunction)) {
         const key = unwrap(selectedFunction);
@@ -497,75 +501,9 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
 
 
 
-            statement += `) THEN GOTO ?${thenNodeId}`//TODO 
+            statement += `) THEN GOTO ?${thenNodeId}`
             statements.push(statement)
 
-            /* const condition = data.control.condition;
-            let statement = 'IF (';
-
-            // LEFT
-            if (condition.valueSet.left == null) {
-                // find expression
-                const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == 1);
-
-                if (link !== undefined) {
-                    const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
-                    const fromNode = processed[fromNodeId]
-                    statement += fromNode?.expressions[fromOutput]
-                }
-            } else {
-                if (condition.type == DVMType.String) {
-                    statement += '"' + condition.valueSet.left + '"';
-                } else {
-                    statement += condition.valueSet.left;
-                }
-
-            }
-
-
-            // OPERATOR
-            match(condition)
-                .with({ type: DVMType.String }, c => {
-                    statement += ` ${stringContitionOperatorMap[c.operator]} `
-                })
-                .with({ type: DVMType.Uint64 }, c => {
-                    statement += ` ${numericContitionOperatorMap[c.operator]} `
-                })
-                .with({ type: 'Boolean' }, c => {
-                    // TODO check if we need to do something
-                })
-                .exhaustive()
-
-
-
-            // RIGHT
-            if (condition.valueSet.right == null) {
-                // find expression
-                const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == 3);
-
-                if (link !== undefined) {
-                    const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
-                    const fromNode = processed[fromNodeId]
-                    statement += fromNode?.expressions[fromOutput]
-
-                }
-
-            } else {
-                if (condition.type == DVMType.String) {
-                    statement += '"' + condition.valueSet.right + '"';
-                } else {
-                    statement += condition.valueSet.right;
-                }
-            }
-            const outLinks = edges
-                .filter(edge => edge.from.id == nodeId)
-                .sort((e1, e2) => e1.from.output - e2.from.output);
-            const [thenNodeId, _] = outLinks.map(edge => edge.to.id);
-
-
-
-            statement += `) THEN GOTO ?${thenNodeId}`//TODO 
-            statements.push(statement) */
         })
         .with({ type: NodeDataKind.Condition }, data => {
             const condition = data.condition;
@@ -640,8 +578,6 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
 
 
         })
-
-        // TODO continue implementation
         .otherwise(data => {
             statements.push(`// ignored : ${JSON.stringify(data)}`)
             lines += 1;
