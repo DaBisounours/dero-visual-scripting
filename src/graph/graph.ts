@@ -211,7 +211,7 @@ type Processed = {
 }
 
 export function generateFunctionCode(name: string, functionData: FunctionData) {
-    //console.warn(name, { data: functionData });
+    console.warn(name, { data: functionData });
 
     // Traverse DAG Depth first
     let order: number[] = [];
@@ -272,17 +272,23 @@ export function generateFunctionCode(name: string, functionData: FunctionData) {
     // Post fix GOTOs
     let index = 0;
 
-    while (index >= 0) {
+    while (index >= 0) { // TODO do one lookup and replace strings in for loop
         index = output.indexOf('GOTO ?');
 
         if (index < 0) {
             break;
         } else {
-            const endIndex = output.slice(index).indexOf('\n');
+            const endIndex = Math.min(
+                output.slice(index).indexOf(' ', 'GOTO $'.length),
+                output.slice(index).indexOf('\n', 'GOTO $'.length)
+            )
             const foundGoto = output.slice(index, index + endIndex);
-            const targetNode = Number(foundGoto.split('?')[1]);
+            const foundGotoStr = foundGoto.split('?')[1];
+            const targetNode = Number(foundGotoStr);
+            const replaced = output.slice(0, index) + `GOTO ${processed[targetNode]?.startLine}` + output.slice(index + endIndex)
+            console.warn({ index, endIndex, foundGoto, foundGotoStr, targetNode, replaced });
 
-            output = output.slice(0, index) + `GOTO ${processed[targetNode]?.startLine}` + output.slice(index + endIndex)
+            output = replaced;
 
         }
     }
@@ -339,11 +345,12 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
             const argNames = Object.keys(data.function.args)
             const asProcess = 'asProcess' in data.function && data.function.asProcess;
             const output = argNames.length;
-
+            console.log('Function', data.function.name, {data});
+            
             const args = argNames.map((name, index) => {
                 // @ts-ignore //! what else ?
                 const arg = data.function.args[name]
-                
+
                 const isVariable = arg.type == DVMType.Variable;
                 const valueSet = isVariable ? arg.valueSet.valueSet : arg.valueSet;
                 const valueType = isVariable ? arg.valueSet.type : arg.type;
@@ -368,10 +375,11 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                 } else {
                     // find expression
                     const link = edges.find(edge => edge.to.id == nodeId && edge.to.input == (asProcess ? index + 2 : index));
-
+                    
                     if (link !== undefined) {
                         const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
                         const fromNode = processed[fromNodeId]
+                        console.log({fromNode})
                         if (fromNode != null) {
                             return fromNode.expressions[fromOutput]
                         }
@@ -482,7 +490,8 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                 }
             }
         })
-        .with({ type: NodeDataKind.Control, control: { type: 'if' } }, data => {
+        .with({ type: NodeDataKind.Control }, data => {
+            // TODO adapt from  IF THEN ELSE
             let statement = 'IF (';
 
             // find expression
@@ -497,12 +506,16 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
             const outLinks = edges
                 .filter(edge => edge.from.id == nodeId)
                 .sort((e1, e2) => e1.from.output - e2.from.output);
-            const [thenNodeId, _] = outLinks.map(edge => edge.to.id);
+            const [thenNodeId, elseNodeId] = outLinks.map(edge => edge.to.id);
 
+            if (thenNodeId !== undefined) {
+                statement += `) THEN GOTO ?${thenNodeId}`
+                if (elseNodeId !== undefined && data.control.type == 'if-else') {
+                    statement += ` ELSE GOTO ?${elseNodeId}`
+                }
+                statements.push(statement)
+            }
 
-
-            statement += `) THEN GOTO ?${thenNodeId}`
-            statements.push(statement)
 
         })
         .with({ type: NodeDataKind.Condition }, data => {
@@ -532,7 +545,7 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                 }
 
             }
-            
+
             expression += ' ' + operator + ' '
 
             if (right == null) {
@@ -568,7 +581,7 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                     return fromNode.expressions[fromOutput]
                 }
             })
-            
+
             const expression = `${data.process.name}(${args.join(', ')})`;
             if (isExpressionUsed) {
                 expressions[links.length - 1] = expression;

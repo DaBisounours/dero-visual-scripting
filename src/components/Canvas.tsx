@@ -179,8 +179,8 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
             label: NodeDataKind.Process,
             value: '0',
             children: processes.length > 0 ? processes.map((name) => (
-                { label: <i>{name}</i>, value: JSON.stringify({ process: name }) }
-            )) : [{ label: <i>no process</i>, value: 'none' }]
+                { label: name, value: JSON.stringify({ process: name }) }
+            )) : [{ label: 'no process', value: 'none' }]
 
         },
         {
@@ -219,7 +219,6 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
                 ...Object.values(DVM).map(value => ({ label: value, value: JSON.stringify({ dvm: value }) }))
             ]
         },
-
     ];
 
 
@@ -438,7 +437,6 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
                 ...(Object.keys(functions[unwrap(selectedFunction)].vars).length > 0 ? [] : ['2']), 
             ]}
             data={addNodeData}
-
             menuWidth={200}
             menuHeight={256}
             style={{ zIndex: 10 }}

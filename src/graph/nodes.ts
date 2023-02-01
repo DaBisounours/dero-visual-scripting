@@ -60,6 +60,7 @@ export type EndNodeData = {
 export type ControlNodeData = {
     control:
     | { type: 'if' }
+    | { type: 'if-else' }
 }
 
 

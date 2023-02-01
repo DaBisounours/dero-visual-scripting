@@ -22,13 +22,14 @@ yarn && yarn dev
     - [x] make a variable node to use the name
   - [x] Make an Operation node for +, -, *, /, %, and also boolean &&, ||, ... (check docs)
   - [x] Refactor the control node to make it simpler. Conditions can be made with operation nodes
+    - [x] Fix IF THEN ELSE case
   - [x] Display Code in an expandable window on the right side
   - [x] Manage variable type
   - [ ] Export only a subset of functions
   - [x] Rename function
-  - [ ] Change function to process and vice versa
+  - [ ] [OPTIONAL] Change function to process and vice versa
   - [x] Remove function or process
-  - [ ] [OPTIONAL] Graph schema Versionning and retrocompatibility
+  - [ ] Graph schema Versionning and retrocompatibility
   - [x] [OPTIONAL] Make links splines instead of straight lines
 - Code generation
   - [ ] Parenthesis on expressions?

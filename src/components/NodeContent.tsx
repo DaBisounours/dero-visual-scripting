@@ -545,6 +545,11 @@ export const ControlNode = ({ id, control }: { id: number } & ControlNodeData) =
     const node = nodes[id];
     const edit = node.edit;
 
+    const types = [
+        { label: 'If - Then', value: 'if' },
+        { label: 'If - Then - Else', value: 'if-else' }
+    ]
+
     return <>
         <div style={styles.row}>
             <NodeConnector
@@ -567,19 +572,38 @@ export const ControlNode = ({ id, control }: { id: number } & ControlNodeData) =
             condition
         </div>
         <Separator />
-        {
-            ['then', 'else'].map((outName, index) =>
-                <div key={outName} style={styles.row}>
-                    {outName}
-                    <NodeConnector
-                        id={id}
-                        inout={2 + index}
-                        size={12}
-                        color={colors.whiteAlpha(400)}
-                        type={{ type: 'flow' }}
-                        way='out' />
-                </div>
-            )
+        {edit ? <div style={styles.row}>
+            <SelectPicker data={types} value={control.type} style={{width: '100%'}}
+            onChange={(value) => { 
+                if (value == 'if' || value == 'if-else') {
+                    updateNodes({
+                        action: NodesAction.EditNode,
+                        data: {
+                            id,
+                            newData: {
+                                type: NodeDataKind.Control,
+                                control: {
+                                    ...control,
+                                    type: value
+                                }
+                            }
+                        }
+                    })
+                }
+            }} />
+        </div> : null}
+        {['then', (control.type == 'if' ? 'continue' : 'else')].map((outName, index) =>
+            <div key={outName} style={styles.row}>
+                {outName}
+                <NodeConnector
+                    id={id}
+                    inout={2 + index}
+                    size={12}
+                    color={colors.whiteAlpha(400)}
+                    type={{ type: 'flow' }}
+                    way='out' />
+            </div>
+        )
 
         }
 
