@@ -959,7 +959,7 @@ export const OperationNode = ({ id, operation }: { id: number } & OperationNodeD
             <div>output</div>
             <NodeConnector
                 id={id}
-                inout={1}
+                inout={2}
                 size={12}
                 color={color}
                 type={{ type: 'value', valueType: operation.type }}

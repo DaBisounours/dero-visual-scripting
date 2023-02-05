@@ -31,6 +31,7 @@ yarn && yarn dev
   - [x] Remove function or process
   - [ ] Graph schema Versionning and retrocompatibility
   - [x] [OPTIONAL] Make links splines instead of straight lines
+    - [ ] Handle backward case
 - Code generation
   - [ ] Parenthesis on expressions?
 - Docs
@@ -41,6 +42,7 @@ yarn && yarn dev
   - [ ] Deploy on IPFS
 - [ ] Refactor
   - [ ] Header
+  - [ ] Rename "process" into "subroutine"
   - [ ] Custom UI components
   - [ ] Graph types all in one place
 

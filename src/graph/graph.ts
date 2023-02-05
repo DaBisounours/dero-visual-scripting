@@ -286,7 +286,6 @@ export function generateFunctionCode(name: string, functionData: FunctionData) {
             const foundGotoStr = foundGoto.split('?')[1];
             const targetNode = Number(foundGotoStr);
             const replaced = output.slice(0, index) + `GOTO ${processed[targetNode]?.startLine}` + output.slice(index + endIndex)
-            console.warn({ index, endIndex, foundGoto, foundGotoStr, targetNode, replaced });
 
             output = replaced;
 
@@ -355,21 +354,6 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                 const valueSet = isVariable ? arg.valueSet.valueSet : arg.valueSet;
                 const valueType = isVariable ? arg.valueSet.type : arg.type;
 
-                /*if (valueSet != null || (arg.type != DVMType.Variable && arg.valueSet.valueSet != null)) {
-                    if (arg.type == DVMType.String) {
-                        return `"${valueSet}"` 
-                    } else {
-                        if (arg.type == DVMType.Variable && arg.valueSet.type == DVMType.String) {
-                            return `"${valueSet.valueSet}"`
-                        } else if (arg.type == DVMType.Variable && arg.valueSet.type == DVMType.Uint64) {
-                            return valueSet.valueSet;
-                        } else {
-                            return valueSet;
-                        }
-                        
-                    }
-                    
-                }*/
                 if (valueSet != null) {
                     return valueType == DVMType.String ? `"${valueSet}"` : valueSet;
                 } else {
@@ -379,7 +363,7 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                     if (link !== undefined) {
                         const [fromNodeId, fromOutput] = [link.from.id, link.from.output];
                         const fromNode = processed[fromNodeId]
-                        console.log({fromNode})
+                        console.log({link, fromNode})
                         if (fromNode != null) {
                             return fromNode.expressions[fromOutput]
                         }
@@ -450,7 +434,7 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                 }
             }
 
-            expressions[operator == Uint64Operator.BitwiseNot ? 1 : inout_index] = expression
+            expressions[operator == Uint64Operator.BitwiseNot ? 1 : 2] = expression
         })
         .with({ type: NodeDataKind.Let }, data => {
             //statements.push('DIM ' + data.dimlet.name + ' as ' + data.dimlet.return.type)
