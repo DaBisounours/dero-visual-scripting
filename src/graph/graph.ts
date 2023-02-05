@@ -383,7 +383,6 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
         })
         .with({ type: NodeDataKind.Operation }, data => {
 
-
             const left = data.operation.valueSet.left;
             const right = data.operation.valueSet.right;
             const operator = data.operation.operator;
@@ -434,7 +433,7 @@ export function generateNodeStatements(nodeId: number, vertices: Nodes, edges: L
                 }
             }
 
-            expressions[operator == Uint64Operator.BitwiseNot ? 1 : 2] = expression
+            expressions[operator == Uint64Operator.BitwiseNot ? 1 : 2] = `(${expression})`
         })
         .with({ type: NodeDataKind.Let }, data => {
             //statements.push('DIM ' + data.dimlet.name + ' as ' + data.dimlet.return.type)
