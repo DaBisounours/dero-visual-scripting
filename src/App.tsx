@@ -1,6 +1,6 @@
 import { atom, useAtom } from 'jotai';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
-import { Button, Checkbox, Container, Content, Drawer, IconButton, Input, InputGroup, Modal, Nav, Sidenav, Stack, Tooltip, Whisper } from 'rsuite'
+import { Button, Checkbox, CheckboxGroup, Container, Content, Drawer, IconButton, Input, InputGroup, Modal, Nav, Sidenav, Stack, Tooltip, Whisper } from 'rsuite'
 import { match } from 'ts-pattern';
 import { Canvas } from './components/Canvas'
 
@@ -314,6 +314,58 @@ const ImportProjectModal = ({ open, setOpen }: ImportProjectModalProps) => {
 
 }
 
+
+type ExportProjectModalProps = { //! Also changes settings
+  open: boolean,
+  setOpen: Dispatch<SetStateAction<boolean>>,
+}
+const ExportProjectModal = ({ open, setOpen }: ExportProjectModalProps) => {
+
+  const [content, setContent] = useState<Option<Result<any>>>(None());
+  const [partial, setPartial] = useState<Option<string[]>>(None());
+  const [functions, setFunctions] = useAtom(functionsAtom);
+  const [projectOptions, setProjectOptions] = useAtom(projectOptionsAtom);
+
+  return <Modal size={'md'} open={open} onClose={_ => setOpen(false)}>
+    <Modal.Header>
+      <Modal.Title>Export</Modal.Title>
+    </Modal.Header>
+    <Modal.Body>
+      <Stack direction='column' alignItems='flex-start' spacing={16}>
+        <Checkbox checked={hasSome(partial)} onChange={(_, checked) => { checked ? setPartial(Some(Object.keys(functions))) : setPartial(None()) }}>Partial</Checkbox>
+        {hasSome(partial) ? <>
+          <CheckboxGroup value={unwrap(partial)} onChange={v => setPartial(Some(v as string[]))}> {
+            Object.keys(functions).map(f =>
+              <Checkbox key={f} value={f}>{f}</Checkbox>)
+          }
+          </CheckboxGroup>
+          <Button onClick={() => {
+            const partialFunctions = Object.fromEntries(Object.entries(functions).filter(([key]) => unwrap(partial).includes(key)));
+
+            exportProject({ ...projectOptions, functions: partialFunctions })
+          }}>Export {Object.keys(functions).length == unwrap(partial).length ? "Full Project" : "Selected"}</Button>
+        </> :
+          <Button
+            onClick={() => {
+              exportProject({ ...projectOptions, functions })
+            }}
+          >Export Full Project</Button>
+        }
+
+      </Stack>
+    </Modal.Body>
+    <Modal.Footer>
+      <Button onClick={_ => setOpen(false)} appearance="subtle">
+        Back
+      </Button>
+
+    </Modal.Footer>
+  </Modal >
+
+}
+
+
+
 type ProjectSettingsModalProps = ImportProjectModalProps;
 const ProjectSettingsModal = ({ open, setOpen }: ProjectSettingsModalProps) => {
 
@@ -397,6 +449,7 @@ function App() {
   const [editFunctionModalMode, setEditFunctionModalMode] =
     useState<EditFunctionModalOpenMode>({ mode: 'create', isProcess: false });
   const [importProjectModalOpen, setImportProjectModalOpen] = useState(false);
+  const [exportProjectModalOpen, setExportProjectModalOpen] = useState(false);
   const [projectSettingsModalOpen, setProjectSettingsModalOpen] = useState(false);
 
 
@@ -442,7 +495,10 @@ function App() {
               speaker={<Tooltip>Export</Tooltip>}
               placement='bottom'
             >
-              <IconButton icon={<FileDownloadIcon />} onClick={() => { exportProject({ ...projectOptions, functions }) }} />
+              <IconButton icon={<FileDownloadIcon />} onClick={() => {
+
+                setExportProjectModalOpen(true);
+              }} />
             </Whisper>
           </Drawer.Actions>
         </Drawer.Header>
@@ -457,7 +513,7 @@ function App() {
 
                       setMenuDrawerOpen(false);
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '1em'}}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '1em' }}>
                         <div>{name}</div>
                         <IconButton size='xs' icon={<GearCircleIcon />} onClick={() => {
                           setSelectedFunction(Some(name));
@@ -534,6 +590,12 @@ function App() {
         open={importProjectModalOpen}
         setOpen={setImportProjectModalOpen}
       />
+
+      <ExportProjectModal
+        open={exportProjectModalOpen}
+        setOpen={setExportProjectModalOpen}
+      />
+
       <ProjectSettingsModal
         open={projectSettingsModalOpen}
         setOpen={setProjectSettingsModalOpen}

@@ -25,7 +25,7 @@ yarn && yarn dev
     - [x] Fix IF THEN ELSE case
   - [x] Display Code in an expandable window on the right side
   - [x] Manage variable type
-  - [ ] Export only a subset of functions
+  - [x] Export only a subset of functions
   - [x] Rename function
   - [ ] [OPTIONAL] Change function to process and vice versa
   - [x] Remove function or process
@@ -33,7 +33,7 @@ yarn && yarn dev
   - [x] [OPTIONAL] Make links splines instead of straight lines
     - [ ] Handle backward case
 - Code generation
-  - [ ] Parenthesis on expressions?
+  - [x] Parenthesis on expressions?
 - Docs
   - [ ] Write some basic documentation
   - [ ] Make a tutorial video
