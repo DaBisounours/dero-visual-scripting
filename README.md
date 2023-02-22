@@ -55,3 +55,7 @@ yarn && yarn dev
 >* [x] Double clicking implemented instead, to keep the context menu and make life easier for trackpads.
 
 > Perhaps a menu of object primitives along the top that can bed dragged into the scene
+
+
+### DERO Address
+dero1qysmkhsvkm2622t7cxgsx8kap59tn4nfhsesdvpdgeqw7umm52xq6qgph5v2v
