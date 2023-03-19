@@ -4,13 +4,28 @@
 
 This tool was made to design Smart contracts visually and generate DVM code to be deployed on the DERO Blockchain.
 
+This is alpha software made for the dArch hackathon, mostly for educational purposes. Code generated may include bugs, please thoroughly check/audit the code before deploying.
+
+## Installation
+Download application from the [releases page](https://github.com/DaBisounours/dero-visual-scripting/releases). 
+
 ## Development
 
+The tool is now based on the [wails](https://wails.io/) project.
+You need go and wails-cli installed (instructions on website).
 ```sh
-yarn && yarn dev
+wails dev
 ```
 
-### TODO
+## Build
+
+Prebuilt binaries are available on the release section of this repository.
+To build on your platform : 
+```sh
+wails build
+```
+
+## Roadmap
 - Graph & UI
   - [x] Add, remove, edit nodes and links
   - [x] Store in local storage
@@ -27,10 +42,10 @@ yarn && yarn dev
   - [x] Manage variable type
   - [x] Export only a subset of functions
   - [x] Rename function
-  - [ ] [OPTIONAL] Change function to process and vice versa
+  - [x] Make links splines instead of straight lines
   - [x] Remove function or process
-  - [ ] Graph schema Versionning and retrocompatibility
-  - [x] [OPTIONAL] Make links splines instead of straight lines
+  - [ ] [OPTIONAL] Change function to process and vice versa
+  - [ ] [OPTIONAL] Graph schema Versionning and retrocompatibility
     - [ ] Handle backward case
 - Code generation
   - [x] Parenthesis on expressions?
@@ -38,12 +53,13 @@ yarn && yarn dev
   - [ ] Write some basic documentation
   - [ ] Make a tutorial video
 - Deployment
+  - [x] Package using electron-like framework
+  - [x] Build a [simulator GUI](https://github.com/DaBisounours/dero-simulator-gui/)
   - [ ] Install / Test on DERO simulator
-  - [ ] Deploy on IPFS
 - [ ] Refactor
-  - [ ] Header
+  - [ ] Header?
   - [ ] Rename "process" into "subroutine"
-  - [ ] Custom UI components
+  - [ ] UI components
   - [ ] Graph types all in one place
 
 ### Improvements suggestions
