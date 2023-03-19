@@ -5,9 +5,9 @@ import { colors } from "../utils/theme";
 import { NodeContent } from "./NodeContent";
 
 import EditIcon from '@rsuite/icons/Edit';
-import CheckIcon from '@rsuite/icons/Check';
 import CloseIcon from '@rsuite/icons/Close';
 import GearIcon from '@rsuite/icons/Gear';
+import TreeIcon from '@rsuite/icons/Tree';
 import { NodesAction, NodeDataKind } from "../graph/nodes";
 import { selectedFunctionAtom } from "../App";
 import { useAtom } from "jotai";
@@ -31,7 +31,7 @@ export function AbstractNode({ id, selected, onMouseDown }: AbstractNodeProps) {
     const name = node.name;
 
     const data = node.data;
-    
+
     const styles: { [part: string]: React.CSSProperties } = {
         container: {
             outline: selected ? '1px solid white' : 'none',
@@ -89,12 +89,7 @@ export function AbstractNode({ id, selected, onMouseDown }: AbstractNodeProps) {
     }
     const closeEdit: MouseEventHandler = _ => changeEdit(false);
     const openEdit: MouseEventHandler = _ => {
-        if (data.type == NodeDataKind.Process) {
-            setSelectedFunction(Some(data.process.name));
-        } else {
-            changeEdit(true);
-        }
-
+        changeEdit(true);
     };
 
     return <div
@@ -104,15 +99,14 @@ export function AbstractNode({ id, selected, onMouseDown }: AbstractNodeProps) {
         <div style={styles.header}>
             <span style={styles.name}>{name}</span>
             <span>
-                {
+                <>{data.type == NodeDataKind.Process ? <IconButton style={styles.icon} onClick={() => { setSelectedFunction(Some(data.process.name)); }} icon={<TreeIcon />} /> : <></>}</>
+                <>{
                     node.edit
                         ? <IconButton style={styles.icon} onClick={closeEdit} icon={<CloseIcon />} />
                         : node.data.type !== NodeDataKind.Start
                             ? <IconButton style={styles.icon} onClick={openEdit} icon={<EditIcon />} />
                             : <IconButton style={styles.icon} onClick={openEdit} icon={<GearIcon />} />
-
-
-                }
+                }</>
             </span>
         </div>
         <div style={styles.content}>

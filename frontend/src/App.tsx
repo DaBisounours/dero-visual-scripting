@@ -10,7 +10,7 @@ import { colors } from './utils/theme'
 import { hasSome, None, Ok, Option, Result, Some, Error, unwrap, isOk } from './utils/variants';
 
 import { Functions, functionsAtom, generateProjectCode, initialFunctions, Links, Nodes, Project, projectOptionsAtom, storageProjectAtom, validateFunctions } from './graph/graph';
-import { Node } from './graph/nodes';
+import { Node, NodeDataKind } from './graph/nodes';
 
 import GearCircleIcon from '@rsuite/icons/legacy/GearCircle';
 import MagicIcon from '@rsuite/icons/legacy/Magic';
@@ -110,6 +110,17 @@ const EditCurrentFunctionModal = ({ mode, open, setOpen }: EditFunctionModalProp
 
       draft[to] = old;
       setSelectedFunction(Some(to));
+
+      // look for process references named as such
+      Object.entries(draft).forEach(([name, _function]) => {
+        Object.entries(_function.nodes).forEach(([name, node]) => {
+          if (node.data.type == NodeDataKind.Process) {
+            if (node.data.process.name == from) {
+              node.data.process.name = to;
+            }
+          }
+        })
+      })
     })
   }
 
@@ -538,7 +549,17 @@ function App() {
                     <Nav.Item key={name} eventKey={"4-" + name} onClick={(event) => {
                       setSelectedFunction(Some(name));
                       setMenuDrawerOpen(false);
-                    }}>{name}</Nav.Item>
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '1em' }}>
+                        <div>{name}</div>
+                        <IconButton size='xs' icon={<GearCircleIcon />} onClick={() => {
+                          setSelectedFunction(Some(name));
+                          setEditFunctionModalMode({ mode: 'edit' });
+                          setEditFunctionModalOpen(true);
+
+                        }} />
+                      </div>
+                    </Nav.Item>
                   )}
                   <Nav.Item eventKey={"4--new"} onClick={(event) => {
                     setEditFunctionModalMode({ mode: 'create', isProcess: true });

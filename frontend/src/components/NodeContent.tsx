@@ -254,7 +254,7 @@ export const StartNode = ({ id }: { id: number }) => {
                 <div>{arg.name}</div>
                 <NodeConnector
                     id={id}
-                    inout={1}
+                    inout={index + 1}
                     size={12}
                     color={arg.type == DVMType.Uint64 ? colors.numericType(600) : colors.stringType(600)}
                     type={{ type: 'value', valueType: arg.type }}
