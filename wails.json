@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "DERO Visual Scripting",
+  "outputfilename": "DERO Visual Scripting",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Evan Graïne",
+    "email": "evan.graine@gmail.com"
+  }
+}

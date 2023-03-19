@@ -447,7 +447,7 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
 
     return <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: '2em' }}>
-            <div style={{ display: 'flex', alignItems: 'center', userSelect: 'none', gap: '2em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2em' }}>
                 <IconButton onClick={() => { setMenuDrawerOpen(true) }} style={{ margin: '1em' }} icon={<MenuIcon />} />
 
                 {hasSome(selectedFunction) ? unwrap(selectedFunction) : null}
@@ -456,7 +456,7 @@ export function Canvas({ style, gridCellSizePx, validGraph, setMenuDrawerOpen, s
             <div><IconButton onClick={() => { setCodeDrawerOpen(true) }} icon={validGraph ? <CheckOutlineIcon /> : <CloseOutlineIcon />} /></div>
 
         </div>
-        <Container className="canvas" style={{ ...style, overflow: "hidden", userSelect: 'none' }} ref={(el) => {
+        <Container className="canvas" style={{ ...style, overflow: "hidden" }} ref={(el) => {
             if (!el) return;
             const rect = el.getBoundingClientRect()
             if (containerPosition.x != rect.x || containerPosition.y != rect.y) {

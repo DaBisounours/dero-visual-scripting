@@ -1,3 +1,5 @@
+import './App.css'
+
 import { atom, useAtom } from 'jotai';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { Button, Checkbox, CheckboxGroup, Container, Content, Drawer, IconButton, Input, InputGroup, Modal, Nav, Sidenav, Stack, Tooltip, Whisper } from 'rsuite'
@@ -560,7 +562,7 @@ function App() {
             <Canvas
               gridCellSizePx={8}
               style={{
-                height: '95vh',
+                height: 'calc(100vh - 64px)',
                 background: colors.whiteAlpha(200),
               }}
               setMenuDrawerOpen={setMenuDrawerOpen}
